@@ -8,6 +8,7 @@ frames_per_update = 6  # Number of frames to wait before updating animation
 # ICH HABE IMMER NOCH NICHT VERSTANDEN WANN ICH EINEN COMMIT HOCHLADEN KANN
 # WAS IST BITTE GIT UND WIESO TAUCHEN MEINE COMMINTS NICHT ONLINE AUF
 # GITHUB MACHT KOMISCHE DINGE MIT BRANCHES
+# PUSH DIE CHANGES ONLINE
 
 def hauptmenue():
     # Pygame initialisieren
