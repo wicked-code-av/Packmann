@@ -4,12 +4,6 @@ packmann_index = 0
 frame_counter = 0  # Controls the animation speed
 frames_per_update = 6  # Number of frames to wait before updating animation
 
-# BLA BLA BLA FUNKTIONIERT FUCKING GIT JETZT
-# ICH HABE IMMER NOCH NICHT VERSTANDEN WANN ICH EINEN COMMIT HOCHLADEN KANN
-# WAS IST BITTE GIT UND WIESO TAUCHEN MEINE COMMINTS NICHT ONLINE AUF
-# GITHUB MACHT KOMISCHE DINGE MIT BRANCHES
-# PUSH DIE CHANGES ONLINE
-
 def hauptmenue():
     # Pygame initialisieren
     pygame.init()
@@ -181,68 +175,90 @@ def save_highscore(name, score):
     with open("highscores.txt", "w") as file:
         file.write("\n".join(highscores))
 
-def game_over(score, sieg):
-    # Pygame initialisieren
-    pygame.init()
+def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist):
 
-    # Fenstergröße festlegen
-    screen_width, screen_height = 400, 300
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Spiel beendet")
+    # Initialisiere Liste mit Geistern
+    geister = [roter_geist, weisser_geist, rosa_geist, gruener_geist]
 
-    # Schriftarten
-    font_large = pygame.font.Font(None, 50)
-    font_medium = pygame.font.Font(None, 30)
+    # Prüfe Kollision mit Geistern, -1 steht für Kollision mit beliebigem Geist auf der Liste
+    if pygame.Rect.collidelist(packmann, geister) != -1:
+        niederlage = True
+        sieg = False
 
-    # Nachricht basierend auf Sieg/Niederlage
-    if sieg:
-        message_text = font_large.render("Level abgeschlossen!", True, farbpalette("hellgruen"))
+    # prüfe, ob alle Münzen eingesammelt worden sind
+    elif not muenzen:
+        sieg = True
+        niederlage = False
+
+    # kein GameOver: Keine Kollision, es gibt noch Münzen auf dem Spielfeld.
     else:
-        message_text = font_large.render("Game Over", True, farbpalette("rot"))
-    message_rect = message_text.get_rect(center=(screen_width // 2, 50))
+        return geister
 
-    # Punktestand anzeigen
-    score_text = font_medium.render(f"Dein Score: {score}", True, farbpalette("blau"))
-    score_rect = score_text.get_rect(center=(screen_width // 2, 100))
+    # sieg oder niederlage
+    if sieg or niederlage:
 
-    # Highscores prüfen
-    is_highscore = check_if_highscore(score)
+        # Pygame initialisieren
+        pygame.init()
 
-    name = ""
-    if is_highscore:
-        input_prompt = font_medium.render("Neuer Highscore! Name eingeben:", True, farbpalette("weiss"))
-        input_prompt_rect = input_prompt.get_rect(center=(screen_width // 2, 150))
+        # Fenstergröße festlegen
+        screen_width, screen_height = 400, 300
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("Spiel beendet")
 
-    # Hauptanzeigeschleife
-    game_over_screen = True
-    while game_over_screen:
-        screen.fill(farbpalette("schwarz"))
-        screen.blit(message_text, message_rect)
-        screen.blit(score_text, score_rect)
+        # Schriftarten
+        font_large = pygame.font.Font(None, 50)
+        font_medium = pygame.font.Font(None, 30)
 
+        # Nachricht basierend auf Sieg/Niederlage
+        if sieg:
+            message_text = font_large.render("Level abgeschlossen!", True, farbpalette("hellgruen"))
+        if niederlage:
+            message_text = font_large.render("Game Over", True, farbpalette("rot"))
+        message_rect = message_text.get_rect(center=(screen_width // 2, 50))
+
+        # Punktestand anzeigen
+        score_text = font_medium.render(f"Dein Score: {score}", True, farbpalette("blau"))
+        score_rect = score_text.get_rect(center=(screen_width // 2, 100))
+
+        # Highscores prüfen
+        is_highscore = check_if_highscore(score)
+
+        name = ""
         if is_highscore:
-            screen.blit(input_prompt, input_prompt_rect)
-            name_text = font_medium.render(name, True, farbpalette("weiss"))
-            name_text_rect = name_text.get_rect(center=(screen_width // 2, 200))
-            screen.blit(name_text, name_text_rect)
+            input_prompt = font_medium.render("Neuer Highscore! Name eingeben:", True, farbpalette("weiss"))
+            input_prompt_rect = input_prompt.get_rect(center=(screen_width // 2, 150))
 
-        pygame.display.flip()
+        # Hauptanzeigeschleife
+        game_over_screen = True
+        while game_over_screen:
+            screen.fill(farbpalette("schwarz"))
+            screen.blit(message_text, message_rect)
+            screen.blit(score_text, score_rect)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and is_highscore:
-                    # Name und Score speichern
-                    save_highscore(name, score)
-                    game_over_screen = False
-                elif event.key == pygame.K_BACKSPACE and is_highscore:
-                    name = name[:-1]  # Zeichen löschen
-                elif is_highscore and len(name) < 10:  # Begrenze Namenslänge auf 10
-                    name += event.unicode
+            if is_highscore:
+                screen.blit(input_prompt, input_prompt_rect)
+                name_text = font_medium.render(name, True, farbpalette("weiss"))
+                name_text_rect = name_text.get_rect(center=(screen_width // 2, 200))
+                screen.blit(name_text, name_text_rect)
 
-    pygame.quit()
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN and is_highscore:
+                        # Name und Score speichern
+                        save_highscore(name, score)
+                        game_over_screen = False
+                    elif event.key == pygame.K_BACKSPACE and is_highscore:
+                        name = name[:-1]  # Zeichen löschen
+                    elif is_highscore and len(name) < 10:  # Begrenze Namenslänge auf 10
+                        name += event.unicode
+
+        pygame.quit()
+        sys.exit()
 
 def farbpalette(farbe):
     farben = {
@@ -635,25 +651,10 @@ if __name__ == "__main__":
         # friss Münzen
         muenzen, score = vielfrass(packmann, muenzen, score)
 
+        # Aktualisiere die Liste der Geister, prüfe, ob das Spiel endet. Falls ja, initialisiere den GameOver Screen
+        geister = game_over(score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
+
         # Aktualisiere Bildschirm
         pygame.display.update()
-
-        # prüfe, ob es eine Kollision von packmann und den Geistern gibt
-        # Auslagern
-        geister = [roter_geist, weisser_geist, rosa_geist, gruener_geist]
-        if pygame.Rect.collidelist(packmann, geister) != -1:
-            sieg = False
-            game_over(score, sieg)
-            for frame in packmann_frames:
-                del frame
-            spiel = False
-            pygame.quit()
-
-        # prüfe, ob alle Münzen eingesammelt worden sind
-        if not muenzen:
-            sieg = True
-            game_over(score, sieg)
-            spiel = False
-            pygame.quit()
 
     pygame.quit()
