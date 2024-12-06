@@ -332,13 +332,15 @@ def teleporter_zeichen(teleporter, kacheln):
     for portal in teleporter:
         pygame.draw.circle(fenster, farbpalette("violett"), (portal.centerx, portal.centery), kacheln / 2)
 
-def spawn(wert_kachel, level, kacheln):
+# Erzeuge ein Rect auf einer Kachel mit einem bestimmten wert
+def erzeuge_rect(wert_kachel, level, kacheln):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == wert_kachel:
                 rect_x = x * kacheln
                 rect_y = y * kacheln
-                return rect_x, rect_y
+                rect = RectType(rect_x, rect_y, kacheln, kacheln)
+                return rect
 
 def wegweiser(rect, kacheln, level):
     # Erzeuge die Koordinaten des Rect-Objekts
@@ -401,6 +403,28 @@ def rect_teleportieren(rect, richtung_rect, geschwindigkeit_rect):
     rect = RectType(x_rect,y_rect,kacheln,kacheln)
     return rect, richtung_rect
 
+def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level):
+
+    # steht der Geist im Teleporter?
+    aktueller_geist, richtung_aktueller_geist = rect_teleportieren(aktueller_geist, richtung_aktueller_geist, geschwindigkeit_aktueller_geist)
+
+    # checke mögliche Richtungen, weise diese dem Geist zu
+    erlaubte_richtungen, _ = wegweiser(aktueller_geist, kacheln, level)
+    if erlaubte_richtungen:
+        # gibt es mehr als 2 mögliche Richtungen? Wegkreuzung, entscheide neu
+        if len(erlaubte_richtungen) > 2:
+            richtung_aktueller_geist = random.choice(erlaubte_richtungen)
+        # kann der Geist sich weiterbewegen? falls nein ändere die Richtung
+        if richtung_aktueller_geist not in erlaubte_richtungen:
+            richtung_aktueller_geist = random.choice(erlaubte_richtungen)
+
+    # bewege den Geist anhand von Geschwindigkeit und Richtung
+    aktueller_geist = rect_bewegen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist)
+    # Zeichne den Geist
+    pygame.draw.rect(fenster, farbpalette(farbe), aktueller_geist)
+    # gib die relevanten Informationen zurück an das Hauptprogramm
+    return aktueller_geist, richtung_aktueller_geist
+
 def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, faehrte, kacheln, level):
     global packmann_index, frame_counter
 
@@ -452,114 +476,6 @@ def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_p
 
     return packmann, richtung_packmann, faehrte
 
-
-
-def weissen_geist_bewegen_und_zeichnen(weisser_geist, richtung_weisser_geist, geschwindigkeit_weisser_geist, faehrte, kacheln, level):
-    # steht der Geist im Teleporter?
-    weisser_geist, richtung_weisser_geist = rect_teleportieren(weisser_geist, richtung_weisser_geist, geschwindigkeit_weisser_geist)
-
-    # bestimme die Koordinaten der aktuellen Kachel
-    _, aktuelle_kachel = wegweiser(weisser_geist, kacheln, level)
-    # sitzt der Geist genau auf einer Kachel und gibt es eine Fährte?
-    if aktuelle_kachel and faehrte:
-
-        # bestimme die Richtung anhand von aktueller Kachel und Fährte
-        aktuelle_kachel_x, aktuelle_kachel_y = aktuelle_kachel
-        ziel_x, ziel_y = faehrte[0]
-
-        if ziel_x > aktuelle_kachel_x:
-            richtung_weisser_geist = "rechts"
-        elif ziel_x < aktuelle_kachel_x:
-            richtung_weisser_geist = "links"
-        elif ziel_y > aktuelle_kachel_y:
-            richtung_weisser_geist = "unten"
-        elif ziel_y < aktuelle_kachel_y:
-            richtung_weisser_geist = "oben"
-        else:
-            richtung_weisser_geist = None
-
-
-        # ist der zweite Eintrag der Fährte gleich dem ersten? Solange dies der Fall ist, lösche die Einträge. Diese Duplikate entstehen, wenn packmann still steht
-        if len(faehrte) > 2:
-            while faehrte[0] == faehrte[1] and len(faehrte) > 2:
-                faehrte.pop(1)
-        # lösche den Eintrag, im nächsten Durchlauf wird ein neues Ziel anvisiert
-        faehrte.pop(0)
-
-
-    # Bewege den Geist
-    weisser_geist = rect_bewegen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist)
-    # Zeichne den Geist
-    pygame.draw.rect(fenster, farbpalette("weiss"), weisser_geist)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return weisser_geist, richtung_weisser_geist
-
-def roten_geist_bewegen_und_zeichnen(roter_geist, richtung_roter_geist, geschwindigkeit_roter_geist, kacheln, level):
-    # checke mögliche Richtungen, weise diese dem Geist zu
-    erlaubte_richtungen,_ = wegweiser(roter_geist, kacheln, level)
-    if erlaubte_richtungen:
-        # kann der Geist sich weiterbewegen? falls nein ändere die Richtung
-        if richtung_roter_geist not in erlaubte_richtungen:
-            richtung_roter_geist = random.choice(erlaubte_richtungen)
-
-    # bewege den Geist anhand von Geschwindigkeit und Richtung
-    roter_geist = rect_bewegen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist)
-    # Zeichne den Geist
-    pygame.draw.rect(fenster, farbpalette("rot"), roter_geist)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return roter_geist, richtung_roter_geist
-
-def rosa_geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, patrouille, kacheln, level):
-    # steht der Geist im Teleporter?
-    rosa_geist, richtung_rosa_geist = rect_teleportieren(rosa_geist, richtung_rosa_geist, geschwindigkeit_rosa_geist)
-
-    # bestimme die Koordinaten der aktuellen Kachel
-    _, aktuelle_kachel = wegweiser(rosa_geist, kacheln, level)
-    # sitzt der Geist genau passend auf einer Kachel? Falls ja, soll anhand der Patrouille das nächste Ziel anvisiert werden
-    if aktuelle_kachel:
-        if aktuelle_kachel in patrouille:
-            aktuelle_kachel_x, aktuelle_kachel_y = aktuelle_kachel
-            ziel_x, ziel_y = patrouille[(patrouille.index(aktuelle_kachel))+1]
-
-            if ziel_x > aktuelle_kachel_x:
-                richtung_rosa_geist = "rechts"
-            elif ziel_x < aktuelle_kachel_x:
-                richtung_rosa_geist = "links"
-            elif ziel_y > aktuelle_kachel_y:
-                richtung_rosa_geist = "unten"
-            elif ziel_y < aktuelle_kachel_y:
-                richtung_rosa_geist = "oben"
-        else:
-            richtung_rosa_geist = None
-
-    # bewege den Geist anhand von Geschwindigkeit und Richtung
-    rosa_geist = rect_bewegen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist)
-    # Zeichne den Geist
-    pygame.draw.rect(fenster, farbpalette("rosa"), rosa_geist)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return rosa_geist, richtung_rosa_geist
-
-def gruenen_geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, kacheln, level):
-    # steht der Geist im Teleporter?
-    gruener_geist, richtung_gruener_geist = rect_teleportieren(gruener_geist, richtung_gruener_geist, geschwindigkeit_gruener_geist)
-
-    # checke mögliche Richtungen, weise diese dem Geist zu
-    erlaubte_richtungen, _ = wegweiser(gruener_geist, kacheln, level)
-    if erlaubte_richtungen:
-        # gibt es mehr als 2 mögliche Richtungen? Wegkreuzung, entscheide neu
-        if len(erlaubte_richtungen) > 2:
-            richtung_gruener_geist = random.choice(erlaubte_richtungen)
-        # kann der Geist sich weiterbewegen? falls nein ändere die Richtung
-        if richtung_gruener_geist not in erlaubte_richtungen:
-            richtung_gruener_geist = random.choice(erlaubte_richtungen)
-
-    # bewege den Geist anhand von Geschwindigkeit und Richtung
-    gruener_geist = rect_bewegen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist)
-    # Zeichne den Geist
-    pygame.draw.rect(fenster, farbpalette("limette"), gruener_geist)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return gruener_geist, richtung_gruener_geist
-
 def vielfrass(packmann, muenzen, score):
     gefressene_muenze = pygame.Rect.collidelist(packmann, muenzen)
     if gefressene_muenze != -1:
@@ -592,41 +508,32 @@ if __name__ == "__main__":
     teleporter = teleporter_initialisieren(level, kacheln)
 
     # Initialisiere packmann (Wert 5 in Level.txt) für die Event-Schleife
-    x_packmann, y_packmann = spawn(5, level, kacheln)
+    packmann = erzeuge_rect(5, level, kacheln)
     geschwindigkeit_packmann = konfiguration.get("geschwindigkeit_packmann")
     richtung_packmann = None
-    packmann = RectType(x_packmann,y_packmann,kacheln,kacheln)
     packmann_frames = []
     for i in range(1, 4):
         packmann_frames.append(pygame.transform.scale(pygame.image.load(f"assets/player_images/{i}.png"), (kacheln, kacheln)))
 
     # Initialisiere weißen Geist für die Event-Schleife (Wert 6 in Level.txt)
-    x_weisser_geist, y_weisser_geist = spawn(6, level, kacheln)
+    weisser_geist = erzeuge_rect(6, level, kacheln)
     geschwindigkeit_weisser_geist = konfiguration.get("geschwindigkeit_weisser_geist")
     richtung_weisser_geist = None
-    weisser_geist = RectType(x_weisser_geist, y_weisser_geist, kacheln, kacheln)
-    # Der weiße Geist folgt der Fährte zum Packmann
-    faehrte = [(12, 15), (12, 14), (12, 13), (12, 12), (12, 11), (11, 11), (10, 11), (9, 11), (9, 12), (9, 13), (9, 14), (9, 15), (9, 16), (9, 17), (9, 18), (9, 19), (9, 20), (10, 20), (11, 20), (12, 20), (12, 21), (12, 22), (12, 23)]
 
     # Initialisiere roten Geist für die Event-Schleife (Wert 7 in Level.txt)
-    x_roter_geist, y_roter_geist = spawn(7, level, kacheln)
+    roter_geist = erzeuge_rect(7, level, kacheln)
     geschwindigkeit_roter_geist = konfiguration.get("geschwindigkeit_roter_geist")
     richtung_roter_geist = None
-    roter_geist = RectType(x_roter_geist, y_roter_geist, kacheln, kacheln)
 
     # Initialisiere rosa Geist für die Event-Schleife (Wert 8 in Level.txt)
-    x_rosa_geist, y_rosa_geist = spawn(8, level, kacheln)
+    rosa_geist = erzeuge_rect(8, level, kacheln)
     geschwindigkeit_rosa_geist = konfiguration.get("geschwindigkeit_rosa_geist")
     richtung_rosa_geist = None
-    rosa_geist = RectType(x_rosa_geist, y_rosa_geist, kacheln, kacheln)
-    # Der rosa Geist hat eine fest definierte Route zu patrouillieren
-    patrouille = [(16, 13), (15, 13), (15, 12), (15, 11), (16, 11), (17, 11), (18, 11), (18, 12), (18, 13), (18, 14), (18, 15), (18, 16), (18, 17), (18, 18), (18, 19), (18, 20), (17, 20), (16, 20), (15, 20), (15, 21), (15, 22), (15, 23), (16, 23), (17, 23), (18, 23), (19, 23), (20, 23), (21, 23), (21, 22), (21, 21), (21, 20), (21, 19), (21, 18), (21, 17), (21, 16), (21, 15), (21, 14), (22, 14), (23, 14), (24, 14), (25, 14), (26, 14), (2, 14), (3, 14), (4, 14), (5, 14), (6, 14), (6, 15), (6, 16), (6, 17), (6, 18), (6, 19), (6, 20), (5, 20), (4, 20), (3, 20), (2, 20), (1, 20), (1, 21), (1, 22), (1, 23), (2, 23), (3, 23), (3, 24), (3, 25), (3, 26), (4, 26), (5, 26), (6, 26), (6, 25), (6, 24), (6, 23), (7, 23), (8, 23), (9, 23), (10, 23), (11, 23), (12, 23), (12, 22), (12, 21), (12, 20), (11, 20), (10, 20), (9, 20), (9, 19), (9, 18), (9, 17), (9, 16), (9, 15), (9, 14), (9, 13), (9, 12), (9, 11), (10, 11), (11, 11), (12, 11), (12, 10), (12, 9), (12, 8), (11, 8), (10, 8), (9, 8), (9, 7), (9, 6), (9, 5), (10, 5), (11, 5), (12, 5), (13, 5), (14, 5), (15, 5), (16, 5), (17, 5), (18, 5), (18, 6), (18, 7), (18, 8), (17, 8), (16, 8), (15, 8), (15, 9), (15, 10),(15, 11)]
 
     # Initialisiere gruenen Geist für die Event-Schleife (Wert 9 in Level.txt)
-    x_gruener_geist, y_gruener_geist = spawn(9, level, kacheln)
+    gruener_geist = erzeuge_rect(9, level, kacheln)
     geschwindigkeit_gruener_geist = konfiguration.get("geschwindigkeit_gruener_geist")
     richtung_gruener_geist = None
-    gruener_geist = RectType(x_rosa_geist, y_rosa_geist, kacheln, kacheln)
 
     # Event-Schleife
     spiel = True
@@ -653,16 +560,16 @@ if __name__ == "__main__":
         packmann, richtung_packmann, faehrte = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, faehrte, kacheln, level)
 
         # weisser Geist, jagd den Packmann, nutzt Teleporter
-        weisser_geist, richtung_weisser_geist = weissen_geist_bewegen_und_zeichnen(weisser_geist, richtung_weisser_geist, geschwindigkeit_weisser_geist, faehrte, kacheln, level)
+        weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level)
 
         # roter Geist, bewegt sich zufällig
-        roter_geist, richtung_roter_geist = roten_geist_bewegen_und_zeichnen(roter_geist, richtung_roter_geist, geschwindigkeit_roter_geist, kacheln, level)
+        roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level)
 
         # rosa Geist, patrouilliert eine vorgegebene Route, nutzt Teleporter
-        rosa_geist, richtung_rosa_geist = rosa_geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, patrouille, kacheln, level)
+        rosa_geist, richtung_rosa_geist = geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, "rosa", kacheln, level)
 
         # gruener Geist, Upgrade vom rotem Geist, entscheidet sich an Wegkreuzungen neu, kann Teleporter benutzen
-        gruener_geist, richtung_gruener_geist = gruenen_geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, kacheln, level)
+        gruener_geist, richtung_gruener_geist = geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, "limette", kacheln, level)
 
         # friss Münzen
         muenzen, score = vielfrass(packmann, muenzen, score)
