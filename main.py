@@ -2,17 +2,11 @@ import pygame, random, sys
 from pygame.rect import RectType
 
 def hauptmenue():
-    # Pygame initialisieren
-    pygame.init()
 
     # Fenstergröße
     screen_width, screen_height = 600, 400
     screen = pygame.display.set_mode((screen_width, screen_height))
     pygame.display.set_caption("Hauptmenü")
-
-    # Schriftart
-    font_title = pygame.font.Font(None, 60)
-    font_button = pygame.font.Font(None, 40)
 
     # Buttons (Text, Farbe, Position)
     buttons = [
@@ -21,50 +15,48 @@ def hauptmenue():
         {"text": "Spiel beenden", "color": farbpalette("rot"), "rect": pygame.Rect(200, 280, 200, 50)},
     ]
 
+    # Eventschleife für das Hauptmenü
     menue = True
     while menue:
         screen.fill(farbpalette("schwarz"))
 
         # Titel anzeigen
-        title_text = font_title.render("Packmann"+"\u00AE", True, farbpalette("gelb"))
+        title_text = schriftarten("gross").render("Packmann" + "\u00AE", True, farbpalette("gelb"))
         title_rect = title_text.get_rect(center=(screen_width // 2, 50))
         screen.blit(title_text, title_rect)
 
         # Buttons anzeigen
         for button in buttons:
             pygame.draw.rect(screen, button["color"], button["rect"])
-            button_text = font_button.render(button["text"], True, farbpalette("weiss"))
+            button_text = schriftarten("mittel").render(button["text"], True, farbpalette("weiss"))
             button_text_rect = button_text.get_rect(center=button["rect"].center)
             screen.blit(button_text, button_text_rect)
 
         pygame.display.flip()
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Linksklick
-                    for i, button in enumerate(buttons):
-                        if button["rect"].collidepoint(event.pos):
-                            if i == 0:  # Spiel starten
-                                menue = False
-                            elif i == 1:  # Highscores anzeigen
-                                show_highscores(screen, screen_width, screen_height)
-                            elif i == 2:  # Spiel beenden
-                                pygame.quit()
-                                sys.exit()
-
-                                #Funktion für das Spiel beenden
+            if event.type == pygame.QUIT: # Klick auf das rote Kreuz oben rechts im Fenster
+                spiel_beenden()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Linksklick
+                # Iteriere durch alle Buttons auf im Dictionary Buttons. Über den Index lässt sich jeder Button eine Funktion per if-Statement zuweisen.
+                for i, button in enumerate(buttons):
+                    if button["rect"].collidepoint(event.pos):
+                        if i == 0:                                                  # Spiel starten
+                            menue = False                                           # pygame läuft weiter, es wird nur das Fenster geschlossen.
+                        elif i == 1:                                                # Highscores anzeigen
+                            show_highscores(screen, screen_width, screen_height)    # Übergebe die größe des Hauptmenüs an den Highscore Bildschirmes
+                        elif i == 2:                                                # Spiel beenden
+                            spiel_beenden()
 
 def show_highscores(screen, screen_width, screen_height):
-    """Zeigt die Highscores an und ermöglicht Rückkehr oder Löschen per Mausklick."""
+    # Zeigt die Highscores an und ermöglicht Rückkehr oder Löschen per Mausklick
 
     def load_highscores():
-        """Lädt die Highscores aus der Datei und behandelt korrupte Daten."""
+        # Lädt die Highscores aus der Datei und behandelt korrupte Daten
         try:
             with open("highscores.txt", "r") as file:
                 lines = [line.strip() for line in file.readlines()]
+                # Erzeuge eine Liste von Tupeln, bestehend aus einem String und einem Integer
                 highscores = [tuple(line.rsplit(" ", 1)) for line in lines if " " in line]
                 # Überprüfen, ob alle Scores numerisch sind
                 for _, score in highscores:
@@ -74,16 +66,11 @@ def show_highscores(screen, screen_width, screen_height):
             return None  # Korrupte oder fehlende Datei
 
     def clear_highscores():
-        """Löscht alle Highscores."""
+        # Löscht alle Highscores
         with open("highscores.txt", "w") as file:
             file.write("")  # Datei leeren
 
     highscores = load_highscores()
-
-    # Schriftarten
-    font = pygame.font.Font(None, 40)
-    small_font = pygame.font.Font(None, 30)  # Kleinere Schrift für Instruktionen
-    title_font = pygame.font.Font(None, 60)
 
     # Buttons
     buttons = [
@@ -97,36 +84,34 @@ def show_highscores(screen, screen_width, screen_height):
 
         if highscores is None:
             # Korruptes File
-            warning_text = title_font.render("Highscores korrupt!", True, farbpalette("rot"))
+            warning_text = schriftarten("gross").render("Highscores korrupt!", True, farbpalette("rot"))
             warning_rect = warning_text.get_rect(center=(screen_width // 2, screen_height // 3))
             screen.blit(warning_text, warning_rect)
 
             # Kleinere Anweisungen
-            instruction_text = small_font.render(
-                "Drücke 'Alle löschen' um Highscores zurückzusetzen", True, farbpalette("weiss")
-            )
+            instruction_text = schriftarten("klein").render("Drücke 'Alle löschen' um Highscores zurückzusetzen", True, farbpalette("weiss"))
             instruction_rect = instruction_text.get_rect(center=(screen_width // 2, screen_height // 2))
             screen.blit(instruction_text, instruction_rect)
         else:
             # Titel anzeigen
-            title_text = title_font.render("Highscores", True, farbpalette("weiss"))
+            title_text = schriftarten("gross").render("Highscores", True, farbpalette("weiss"))
             title_rect = title_text.get_rect(center=(screen_width // 2, 50))
             screen.blit(title_text, title_rect)
 
             # Highscores anzeigen
             for i, (name, score) in enumerate(highscores[:10]):
-                name_text = font.render(name, True, farbpalette("blau"))
-                name_rect = name_text.get_rect(topleft=(100, 120 + i * 40))
+                name_text = schriftarten("mittel").render(name, True, farbpalette("blau"))
+                name_rect = name_text.get_rect(topleft=(100, 80 + i * 40))
                 screen.blit(name_text, name_rect)
 
-                score_text = font.render(score, True, farbpalette("rot"))
-                score_rect = score_text.get_rect(topright=(500, 120 + i * 40))
+                score_text = schriftarten("mittel").render(score, True, farbpalette("rot"))
+                score_rect = score_text.get_rect(topright=(500, 80 + i * 40))
                 screen.blit(score_text, score_rect)
 
         # Buttons anzeigen
         for button in buttons:
             pygame.draw.rect(screen, button["color"], button["rect"])
-            button_text = font.render(button["text"], True, farbpalette("weiss"))
+            button_text = schriftarten("mittel").render(button["text"], True, farbpalette("weiss"))
             button_text_rect = button_text.get_rect(center=button["rect"].center)
             screen.blit(button_text, button_text_rect)
 
@@ -145,7 +130,7 @@ def show_highscores(screen, screen_width, screen_height):
                         highscores = load_highscores()
 
 def check_if_highscore(score):
-    """Prüft, ob der gegebene Score ein Highscore ist, und ersetzt bei Bedarf eine kaputte Datei."""
+    # Prüft, ob der gegebene Score ein Highscore ist, und ersetzt bei Bedarf eine kaputte Datei
     try:
         with open("highscores.txt", "r") as file:
             highscores = [int(line.split()[1]) for line in file.readlines()]
@@ -155,23 +140,29 @@ def check_if_highscore(score):
             file.write("")  # Neue leere Datei
         highscores = []
 
-    return len(highscores) < 10 or score > min(highscores)
+    return len(highscores) < 6 or score > min(highscores)
+    # True, wenn weniger als 6 Highscores gespeichert sind oder der Score größer ist als der kleinste Highscore
 
 def save_highscore(name, score):
     try:
         with open("highscores.txt", "r") as file:
             highscores = [line.strip() for line in file.readlines()]
+            # Liste von Stings, jeder Sting ein Paar aus Name und Score
     except FileNotFoundError:
         highscores = []
 
     # Neuen Highscore hinzufügen und sortieren
     highscores.append(f"{name} {score}")
-    highscores = sorted(highscores, key=lambda x: int(x.split()[1]), reverse=True)[:10]
+    highscores = sorted(highscores, key=lambda x: int(x.split()[1]), reverse=True)[:6]
+    """Die Lambda-Funktion definiert das Sortierkriterium: die Punktzahl.
+    Diese wird aus dem String herausgesplitted, und in einen int umgewandelt.
+    Die 6 größten Werte werden behalten."""
 
     # Datei aktualisieren
     with open("highscores.txt", "w") as file:
         file.write("\n".join(highscores))
 
+# Diese Funktion beendet das Spiel bei Sieg oder Niederlage, vorher kann ein Highscore gespeichert werden
 def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist):
 
     # Initialisiere Liste mit Geistern
@@ -194,27 +185,20 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
     # sieg oder niederlage
     if sieg or niederlage:
 
-        # Pygame initialisieren
-        pygame.init()
-
         # Fenstergröße festlegen
         screen_width, screen_height = 400, 300
         screen = pygame.display.set_mode((screen_width, screen_height))
         pygame.display.set_caption("Spiel beendet")
 
-        # Schriftarten
-        font_large = pygame.font.Font(None, 50)
-        font_medium = pygame.font.Font(None, 30)
-
         # Nachricht basierend auf Sieg/Niederlage
         if sieg:
-            message_text = font_large.render("Level abgeschlossen!", True, farbpalette("hellgruen"))
+            message_text = schriftarten("gross").render("Sieg!", True, farbpalette("hellgruen"))
         if niederlage:
-            message_text = font_large.render("Game Over", True, farbpalette("rot"))
+            message_text = schriftarten("gross").render("Game Over", True, farbpalette("rot"))
         message_rect = message_text.get_rect(center=(screen_width // 2, 50))
 
         # Punktestand anzeigen
-        score_text = font_medium.render(f"Dein Score: {score}", True, farbpalette("blau"))
+        score_text = schriftarten("mittel").render(f"Dein Score: {score}", True, farbpalette("blau"))
         score_rect = score_text.get_rect(center=(screen_width // 2, 100))
 
         # Highscores prüfen
@@ -222,7 +206,7 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
 
         name = ""
         if is_highscore:
-            input_prompt = font_medium.render("Neuer Highscore! Name eingeben:", True, farbpalette("weiss"))
+            input_prompt = schriftarten("klein").render("Neuer Highscore! Name eingeben:", True, farbpalette("weiss"))
             input_prompt_rect = input_prompt.get_rect(center=(screen_width // 2, 150))
 
         # Hauptanzeigeschleife
@@ -234,7 +218,7 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
 
             if is_highscore:
                 screen.blit(input_prompt, input_prompt_rect)
-                name_text = font_medium.render(name, True, farbpalette("weiss"))
+                name_text = schriftarten("mittel").render(name, True, farbpalette("weiss"))
                 name_text_rect = name_text.get_rect(center=(screen_width // 2, 200))
                 screen.blit(name_text, name_text_rect)
 
@@ -242,20 +226,16 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    spiel_beenden()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN and is_highscore:
-                        # Name und Score speichern
+                        # Name und Score speichern, Spiel beenden
                         save_highscore(name, score)
-                        game_over_screen = False
+                        spiel_beenden()
                     elif event.key == pygame.K_BACKSPACE and is_highscore:
                         name = name[:-1]  # Zeichen löschen
                     elif is_highscore and len(name) < 10:  # Begrenze Namenslänge auf 10
                         name += event.unicode
-
-        pygame.quit()
-        sys.exit()
 
 def farbpalette(farbe):
     farben = {
@@ -271,6 +251,14 @@ def farbpalette(farbe):
     }
     return farben.get(farbe)
 
+def schriftarten(schrift):
+    schriften = {
+        "klein" : pygame.font.Font(None,30),
+        "mittel" : pygame.font.Font(None,40),
+        "gross" : pygame.font.Font(None,60),
+    }
+    return schriften.get(schrift)
+
 # Generiere basierend auf Konfiguration.txt ein Dictionary
 def lade_konfiguration(filename="Konfiguration.txt"):
     config = {}
@@ -284,7 +272,6 @@ def lade_konfiguration(filename="Konfiguration.txt"):
     except FileNotFoundError:
         print(f"Die Datei {filename} wurde nicht gefunden.")
     return config
-
 
 def level_initialisieren():
     with open("Level.txt", 'r') as datei:
@@ -326,17 +313,16 @@ def initialisiere_entitaet(wert_kachel, level, kacheln):
                 rect = RectType(rect_x, rect_y, kacheln, kacheln)
                 return rect
 
+# Wenn der Wegweiser Werte ausgibt, dann bedeutet das, dass die Entität, welche die Funktion aufruft, genau passend auf einer Kachel sitzt.
 def wegweiser(rect, kacheln, level):
     # Erzeuge die Koordinaten des Rect-Objekts
     rect_x, rect_y,_,_ = rect
     # Falls das Rect-Object genau passend auf einer Kachel sitzt:
     if rect_x % kacheln == 0 and rect_y % kacheln == 0:
-        # initialisiere Liste
         erlaubte_richtungen = []
-        # Erzeuge die Koordinaten der Kachel im Raster und rufe ihre Nachbarn ab
+        # Erzeuge die Koordinaten der Kachel in der Matrix und rufe ihre Nachbarn ab
         aktuelle_kachel_x = int (rect_x/kacheln)
         aktuelle_kachel_y = int (rect_y/kacheln)
-        aktuelle_kachel = (aktuelle_kachel_x, aktuelle_kachel_y)
         oberer_nachbar = level[aktuelle_kachel_y - 1][aktuelle_kachel_x]
         unterer_nachbar = level[aktuelle_kachel_y + 1][aktuelle_kachel_x]
         linker_nachbar = level[aktuelle_kachel_y][aktuelle_kachel_x - 1]
@@ -350,9 +336,9 @@ def wegweiser(rect, kacheln, level):
             erlaubte_richtungen.append("links")
         if rechter_nachbar != 1:
             erlaubte_richtungen.append("rechts")
-        return erlaubte_richtungen, aktuelle_kachel
+        return erlaubte_richtungen
     else:
-        return None, None
+        return None
 
 def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
     # bestimme die Koordinaten des Rect-Objekts
@@ -372,9 +358,8 @@ def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
     return rect
 
 def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level):
-
     # checke mögliche Richtungen, weise diese dem Geist zu
-    erlaubte_richtungen, _ = wegweiser(aktueller_geist, kacheln, level)
+    erlaubte_richtungen = wegweiser(aktueller_geist, kacheln, level)
     if erlaubte_richtungen:
         # gibt es mehr als 2 mögliche Richtungen? Wegkreuzung, entscheide neu
         if len(erlaubte_richtungen) > 2:
@@ -391,9 +376,8 @@ def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist,
     return aktueller_geist, richtung_aktueller_geist
 
 def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level):
-
     # gab es ein Update der erlaubten Richtungen für packmann? (er steht auf einer Wegkreuzung)
-    erlaubte_richtungen, aktuelle_kachel = wegweiser(packmann, kacheln, level)
+    erlaubte_richtungen = wegweiser(packmann, kacheln, level)
 
     # Falls ja, ändere die Richtung abhängig vom User-Input
     if erlaubte_richtungen:
@@ -411,10 +395,8 @@ def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_p
 
     # bewege den packmann anhand von Geschwindigkeit und Richtung
     packmann = rect_bewegen(packmann, geschwindigkeit_packmann, richtung_packmann)
-
     # zeichne den packmann als Kreis
     pygame.draw.circle(fenster, farbpalette("gelb"), (packmann.centerx, packmann.centery), kacheln / 2)
-
     # gib die relevanten Informationen zurück an das Hauptprogramm
     return packmann, richtung_packmann
 
@@ -426,16 +408,21 @@ def muenzen_fressen(packmann, muenzen, score):
         score = score + 1
     return muenzen, score
 
-if __name__ == "__main__":
+def spiel_beenden():
+    pygame.quit()
+    sys.exit()
 
-    # Starte das Hauptmenü
+if __name__ == "__main__":
+    # starte pygame
+    pygame.init()
+
+    # starte das Hauptmenü
     hauptmenue()
 
     # hier beginnt das Spiel: Es werden alle notwendigen Komponenten für die Eventschleife initialisiert
-    pygame.init()               # starte pygame
-    fps = pygame.time.Clock()   # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
-    score = 0                   # initialisiere den Score
-    konfiguration = lade_konfiguration() # Lade die Konfiguration
+    fps = pygame.time.Clock()               # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
+    score = 0                               # initialisiere den Score
+    konfiguration = lade_konfiguration()    # Lade die Konfiguration
 
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
     level = level_initialisieren()
@@ -492,7 +479,7 @@ if __name__ == "__main__":
         # zeichne die Münzen auf der Liste
         muenzen_zeichnen(muenzen)
 
-        # bewege und zeichne Packmann und Geister
+        # bewege und zeichne Packmann + Geister
         packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level)
         weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level)
         roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level)
@@ -507,5 +494,3 @@ if __name__ == "__main__":
 
         # Aktualisiere Bildschirm
         pygame.display.update()
-
-    pygame.quit()
