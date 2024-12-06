@@ -1,8 +1,5 @@
 import pygame, random, sys
 from pygame.rect import RectType
-packmann_index = 0
-frame_counter = 0  # Controls the animation speed
-frames_per_update = 6  # Number of frames to wait before updating animation
 
 def hauptmenue():
     # Pygame initialisieren
@@ -425,35 +422,12 @@ def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist,
     # gib die relevanten Informationen zurück an das Hauptprogramm
     return aktueller_geist, richtung_aktueller_geist
 
-def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, faehrte, kacheln, level):
-    global packmann_index, frame_counter
+def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level):
 
-    # Ensure the current frame is initialized
-    current_frame = packmann_frames[packmann_index]
-
-    # Increment the frame counter
-    frame_counter += 1
-
-    # Update the animation frame only if the counter exceeds the threshold
-    if frame_counter >= frames_per_update:
-        packmann_index = (packmann_index + 1) % len(packmann_frames)  # Cycle through frames
-        frame_counter = 0  # Reset the counter
-
-    # Adjust the frame orientation based on the direction
-    if richtung_packmann == "rechts":
-        current_frame = packmann_frames[packmann_index]
-    elif richtung_packmann == "links":
-        current_frame = pygame.transform.flip(packmann_frames[packmann_index], True, False)
-    elif richtung_packmann == "oben":
-        current_frame = pygame.transform.rotate(packmann_frames[packmann_index], 90)
-    elif richtung_packmann == "unten":
-        current_frame = pygame.transform.rotate(packmann_frames[packmann_index], 270)
-
-    # Render the current frame with the correct orientation
-    fenster.blit(current_frame, (packmann.x, packmann.y))
-
-    # Movement and direction logic
+    # gab es ein Update der erlaubten Richtungen für packmann? (er steht auf einer Wegkreuzung)
     erlaubte_richtungen, aktuelle_kachel = wegweiser(packmann, kacheln, level)
+
+    # Falls ja, ändere die Richtung abhängig vom User-Input
     if erlaubte_richtungen:
         tasten = pygame.key.get_pressed()
         if tasten[pygame.K_RIGHT] and "rechts" in erlaubte_richtungen:
@@ -467,17 +441,21 @@ def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_p
         else:
             richtung_packmann = None
 
-    if aktuelle_kachel:
-        faehrte.append(aktuelle_kachel)
-
-    # Update Packmann's position
+    # steht packmann im Teleporter?
     packmann, richtung_packmann = rect_teleportieren(packmann, richtung_packmann, geschwindigkeit_packmann)
+
+    # bewege den packmann anhand von Geschwindigkeit und Richtung
     packmann = rect_bewegen(packmann, geschwindigkeit_packmann, richtung_packmann)
 
-    return packmann, richtung_packmann, faehrte
+    # zeichne den packmann als Kreis
+    pygame.draw.circle(fenster, farbpalette("gelb"), (packmann.centerx, packmann.centery), kacheln / 2)
 
-def vielfrass(packmann, muenzen, score):
+    # gib die relevanten Informationen zurück an das Hauptprogramm
+    return packmann, richtung_packmann
+
+def muenzen_fressen(packmann, muenzen, score):
     gefressene_muenze = pygame.Rect.collidelist(packmann, muenzen)
+    # bei Kollision gibt collidelist als Argument den Indexeintrag des entsprechenden Elements
     if gefressene_muenze != -1:
         muenzen.pop(gefressene_muenze)
         score = score + 1
@@ -511,9 +489,6 @@ if __name__ == "__main__":
     packmann = erzeuge_rect(5, level, kacheln)
     geschwindigkeit_packmann = konfiguration.get("geschwindigkeit_packmann")
     richtung_packmann = None
-    packmann_frames = []
-    for i in range(1, 4):
-        packmann_frames.append(pygame.transform.scale(pygame.image.load(f"assets/player_images/{i}.png"), (kacheln, kacheln)))
 
     # Initialisiere weißen Geist für die Event-Schleife (Wert 6 in Level.txt)
     weisser_geist = erzeuge_rect(6, level, kacheln)
@@ -556,23 +531,15 @@ if __name__ == "__main__":
         # zeichne die Teleporter
         teleporter_zeichen(teleporter, kacheln)
 
-        # packmann
-        packmann, richtung_packmann, faehrte = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, faehrte, kacheln, level)
-
-        # weisser Geist, jagd den Packmann, nutzt Teleporter
+        # bewege und zeichne Packmann und Geister
+        packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level)
         weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level)
-
-        # roter Geist, bewegt sich zufällig
         roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level)
-
-        # rosa Geist, patrouilliert eine vorgegebene Route, nutzt Teleporter
         rosa_geist, richtung_rosa_geist = geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, "rosa", kacheln, level)
-
-        # gruener Geist, Upgrade vom rotem Geist, entscheidet sich an Wegkreuzungen neu, kann Teleporter benutzen
         gruener_geist, richtung_gruener_geist = geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, "limette", kacheln, level)
 
         # friss Münzen
-        muenzen, score = vielfrass(packmann, muenzen, score)
+        muenzen, score = muenzen_fressen(packmann, muenzen, score)
 
         # Aktualisiere die Liste der Geister und prüfe, ob das Spiel endet. Falls ja, initialisiere den GameOver Screen
         geister = game_over(score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
