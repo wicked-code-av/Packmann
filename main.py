@@ -316,21 +316,8 @@ def muenzen_zeichnen(muenzen):
     for muenze in muenzen:
         pygame.draw.rect(fenster,farbpalette("gelb"),muenze)
 
-def teleporter_initialisieren(level, kacheln):
-    teleporter = []
-    for y in range(len(level)):
-        for x in range(len(level[0])):
-            if level[y][x] == 3:
-                portal = RectType(x * kacheln, y * kacheln, kacheln, kacheln)
-                teleporter.append(portal)
-    return teleporter
-
-def teleporter_zeichen(teleporter, kacheln):
-    for portal in teleporter:
-        pygame.draw.circle(fenster, farbpalette("violett"), (portal.centerx, portal.centery), kacheln / 2)
-
-# Erzeuge ein Rect auf einer Kachel mit einem bestimmten wert
-def erzeuge_rect(wert_kachel, level, kacheln):
+# Erzeuge eine Entität (verwendet für Geister, Packmann), als Rect-Type, auf einer Kachel mit einem bestimmten wert
+def initialisiere_entitaet(wert_kachel, level, kacheln):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == wert_kachel:
@@ -384,26 +371,7 @@ def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
     # gib das angepasste Rect-Objekt zurück
     return rect
 
-def rect_teleportieren(rect, richtung_rect, geschwindigkeit_rect):
-    # bestimme die Koordinaten des Rect-Objekts
-    x_rect, y_rect, kacheln, _ = rect
-    # Rect-Objekt erreicht rechten Teleporter:
-    if x_rect == 26 * kacheln and y_rect == 14 * kacheln:
-        # Teleportiere zu linkem Teleporter mit offset in +x-Richtung abhängig von der Geschwindigkeit (verhindert sofortiges zurück-teleportieren in manchen Fällen)
-        x_rect, y_rect = 1 * kacheln + geschwindigkeit_rect, 14 * kacheln
-        richtung_rect = "rechts"
-    # Rect-Objekt erreicht rechten Teleporter:
-    if x_rect == 1 * kacheln and y_rect == 14 * kacheln:
-        # Teleportiere zu rechtem Teleporter mit offset in -x-Richtung abhängig von der Geschwindigkeit (verhindert sofortiges zurück-teleportieren in manchen Fällen)
-        x_rect, y_rect = 26 * kacheln - geschwindigkeit_rect, 14 * kacheln
-        richtung_rect = "links"
-    rect = RectType(x_rect,y_rect,kacheln,kacheln)
-    return rect, richtung_rect
-
 def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level):
-
-    # steht der Geist im Teleporter?
-    aktueller_geist, richtung_aktueller_geist = rect_teleportieren(aktueller_geist, richtung_aktueller_geist, geschwindigkeit_aktueller_geist)
 
     # checke mögliche Richtungen, weise diese dem Geist zu
     erlaubte_richtungen, _ = wegweiser(aktueller_geist, kacheln, level)
@@ -441,9 +409,6 @@ def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_p
         else:
             richtung_packmann = None
 
-    # steht packmann im Teleporter?
-    packmann, richtung_packmann = rect_teleportieren(packmann, richtung_packmann, geschwindigkeit_packmann)
-
     # bewege den packmann anhand von Geschwindigkeit und Richtung
     packmann = rect_bewegen(packmann, geschwindigkeit_packmann, richtung_packmann)
 
@@ -470,7 +435,7 @@ if __name__ == "__main__":
     pygame.init()               # starte pygame
     fps = pygame.time.Clock()   # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
     score = 0                   # initialisiere den Score
-    konfiguration = lade_konfiguration()
+    konfiguration = lade_konfiguration() # Lade die Konfiguration
 
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
     level = level_initialisieren()
@@ -480,33 +445,32 @@ if __name__ == "__main__":
     fenster = pygame.display.set_mode((fenster_x,fenster_y))
     pygame.display.set_caption("Packmann"+"\u00AE")
 
-    # Erzeuge Listen von Mauerabschnitten, Münzen und Teleportern
+    # Erzeuge Listen von Mauerabschnitten und Münzen
     mauern = mauern_initialisieren(level, kacheln)
     muenzen = muenzen_initialisieren(level, kacheln)
-    teleporter = teleporter_initialisieren(level, kacheln)
 
     # Initialisiere packmann (Wert 5 in Level.txt) für die Event-Schleife
-    packmann = erzeuge_rect(5, level, kacheln)
+    packmann = initialisiere_entitaet(5, level, kacheln)
     geschwindigkeit_packmann = konfiguration.get("geschwindigkeit_packmann")
     richtung_packmann = None
 
     # Initialisiere weißen Geist für die Event-Schleife (Wert 6 in Level.txt)
-    weisser_geist = erzeuge_rect(6, level, kacheln)
+    weisser_geist = initialisiere_entitaet(6, level, kacheln)
     geschwindigkeit_weisser_geist = konfiguration.get("geschwindigkeit_weisser_geist")
     richtung_weisser_geist = None
 
     # Initialisiere roten Geist für die Event-Schleife (Wert 7 in Level.txt)
-    roter_geist = erzeuge_rect(7, level, kacheln)
+    roter_geist = initialisiere_entitaet(7, level, kacheln)
     geschwindigkeit_roter_geist = konfiguration.get("geschwindigkeit_roter_geist")
     richtung_roter_geist = None
 
     # Initialisiere rosa Geist für die Event-Schleife (Wert 8 in Level.txt)
-    rosa_geist = erzeuge_rect(8, level, kacheln)
+    rosa_geist = initialisiere_entitaet(8, level, kacheln)
     geschwindigkeit_rosa_geist = konfiguration.get("geschwindigkeit_rosa_geist")
     richtung_rosa_geist = None
 
     # Initialisiere gruenen Geist für die Event-Schleife (Wert 9 in Level.txt)
-    gruener_geist = erzeuge_rect(9, level, kacheln)
+    gruener_geist = initialisiere_entitaet(9, level, kacheln)
     geschwindigkeit_gruener_geist = konfiguration.get("geschwindigkeit_gruener_geist")
     richtung_gruener_geist = None
 
@@ -528,9 +492,6 @@ if __name__ == "__main__":
         # zeichne die Münzen auf der Liste
         muenzen_zeichnen(muenzen)
 
-        # zeichne die Teleporter
-        teleporter_zeichen(teleporter, kacheln)
-
         # bewege und zeichne Packmann und Geister
         packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level)
         weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level)
@@ -541,7 +502,7 @@ if __name__ == "__main__":
         # friss Münzen
         muenzen, score = muenzen_fressen(packmann, muenzen, score)
 
-        # Aktualisiere die Liste der Geister und prüfe, ob das Spiel endet. Falls ja, initialisiere den GameOver Screen
+        # Aktualisiere die Liste der Geister und prüfe, ob das Spiel endet. Falls ja, starte den Game Over Screen
         geister = game_over(score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
 
         # Aktualisiere Bildschirm
