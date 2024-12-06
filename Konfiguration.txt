@@ -1,0 +1,12 @@
+# Konfiguration für das Spiel
+# Es gilt: Variablenname Leerzeichen Wert # Kommentar
+# Leere Zeilen werden ignoriert
+
+kacheln 16
+# Größe der Kacheln aus denen sich das Spielfeld zusammensetzt in Pixeln
+
+geschwindigkeit_packmann 1          # Default: 1
+geschwindigkeit_roter_geist 1       # Default: 1
+geschwindigkeit_rosa_geist 1        # Default: 1
+geschwindigkeit_gruener_geist 1     # Default: 1
+geschwindigkeit_weisser_geist 1     # Default: 1

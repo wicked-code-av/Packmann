@@ -274,6 +274,21 @@ def farbpalette(farbe):
     }
     return farben.get(farbe)
 
+# Generiere basierend auf Konfiguration.txt ein Dictionary
+def lade_konfiguration(filename="Konfiguration.txt"):
+    config = {}
+    try:
+        with open(filename, "r") as file:
+            for line in file:
+                line = line.split("#")[0].strip()  # Kommentar entfernen und Zeile trimmen
+                if line:  # Nur nicht-leere Zeilen verarbeiten
+                    key, value = line.split()[:2]  # Key und Value extrahieren
+                    config[key] = float(value) if "." in value else int(value)  # Typ bestimmen
+    except FileNotFoundError:
+        print(f"Die Datei {filename} wurde nicht gefunden.")
+    return config
+
+
 def level_initialisieren():
     with open("Level.txt", 'r') as datei:
         return [list(map(int, line.strip().split())) for line in datei]
@@ -561,10 +576,11 @@ if __name__ == "__main__":
     pygame.init()               # starte pygame
     fps = pygame.time.Clock()   # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
     score = 0                   # initialisiere den Score
+    konfiguration = lade_konfiguration()
 
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
     level = level_initialisieren()
-    kacheln = 16
+    kacheln = konfiguration.get("kacheln",)
     fenster_x = len(level[0]) * kacheln
     fenster_y = len(level) * kacheln
     fenster = pygame.display.set_mode((fenster_x,fenster_y))
@@ -577,16 +593,16 @@ if __name__ == "__main__":
 
     # Initialisiere packmann (Wert 5 in Level.txt) für die Event-Schleife
     x_packmann, y_packmann = spawn(5, level, kacheln)
-    geschwindigkeit_packmann = 1 # Alles in einen Block
+    geschwindigkeit_packmann = konfiguration.get("geschwindigkeit_packmann")
     richtung_packmann = None
     packmann = RectType(x_packmann,y_packmann,kacheln,kacheln)
     packmann_frames = []
-    for i in range(1, 5):
+    for i in range(1, 4):
         packmann_frames.append(pygame.transform.scale(pygame.image.load(f"assets/player_images/{i}.png"), (kacheln, kacheln)))
 
     # Initialisiere weißen Geist für die Event-Schleife (Wert 6 in Level.txt)
     x_weisser_geist, y_weisser_geist = spawn(6, level, kacheln)
-    geschwindigkeit_weisser_geist = 1  # muss ein Teiler von "kacheln" sein
+    geschwindigkeit_weisser_geist = konfiguration.get("geschwindigkeit_weisser_geist")
     richtung_weisser_geist = None
     weisser_geist = RectType(x_weisser_geist, y_weisser_geist, kacheln, kacheln)
     # Der weiße Geist folgt der Fährte zum Packmann
@@ -594,13 +610,13 @@ if __name__ == "__main__":
 
     # Initialisiere roten Geist für die Event-Schleife (Wert 7 in Level.txt)
     x_roter_geist, y_roter_geist = spawn(7, level, kacheln)
-    geschwindigkeit_roter_geist = 1 # muss ein Teiler von "kacheln" sein
+    geschwindigkeit_roter_geist = konfiguration.get("geschwindigkeit_roter_geist")
     richtung_roter_geist = None
     roter_geist = RectType(x_roter_geist, y_roter_geist, kacheln, kacheln)
 
     # Initialisiere rosa Geist für die Event-Schleife (Wert 8 in Level.txt)
     x_rosa_geist, y_rosa_geist = spawn(8, level, kacheln)
-    geschwindigkeit_rosa_geist = 1  # muss ein Teiler von "kacheln" sein
+    geschwindigkeit_rosa_geist = konfiguration.get("geschwindigkeit_rosa_geist")
     richtung_rosa_geist = None
     rosa_geist = RectType(x_rosa_geist, y_rosa_geist, kacheln, kacheln)
     # Der rosa Geist hat eine fest definierte Route zu patrouillieren
@@ -608,7 +624,7 @@ if __name__ == "__main__":
 
     # Initialisiere gruenen Geist für die Event-Schleife (Wert 9 in Level.txt)
     x_gruener_geist, y_gruener_geist = spawn(9, level, kacheln)
-    geschwindigkeit_gruener_geist = 1  # muss ein Teiler von "kacheln" sein
+    geschwindigkeit_gruener_geist = konfiguration.get("geschwindigkeit_gruener_geist")
     richtung_gruener_geist = None
     gruener_geist = RectType(x_rosa_geist, y_rosa_geist, kacheln, kacheln)
 
@@ -651,7 +667,7 @@ if __name__ == "__main__":
         # friss Münzen
         muenzen, score = vielfrass(packmann, muenzen, score)
 
-        # Aktualisiere die Liste der Geister, prüfe, ob das Spiel endet. Falls ja, initialisiere den GameOver Screen
+        # Aktualisiere die Liste der Geister und prüfe, ob das Spiel endet. Falls ja, initialisiere den GameOver Screen
         geister = game_over(score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
 
         # Aktualisiere Bildschirm
