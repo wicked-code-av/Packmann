@@ -29,3 +29,14 @@
 1 2 1 1 1 1 1 1 1 1 1 1 2 1 1 2 1 1 1 1 1 1 1 1 1 1 2 1
 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+
+# 0 Durchgang
+# 1 Mauer
+# 2 Münze
+
+# Diese Entitäten brauchen genau einen Punkt an dem sie starten:
+# 5 Spawn Packman
+# 6 Spawn Weißer Geist
+# 7 Spawn Roter Geist
+# 8 Spawn Rosa Geist
+# 9 Spawn Grüner Geist

@@ -267,15 +267,32 @@ def lade_konfiguration(filename="Konfiguration.txt"):
             for line in file:
                 line = line.split("#")[0].strip()  # Kommentar entfernen und Zeile trimmen
                 if line:  # Nur nicht-leere Zeilen verarbeiten
-                    key, value = line.split()[:2]  # Key und Value extrahieren
-                    config[key] = float(value) if "." in value else int(value)  # Typ bestimmen
+                    parts = line.split()  # Zeile in Schlüssel und Wert aufteilen
+                    key = parts[0]  # Erster Teil ist der Schlüssel
+                    value = parts[1] if len(parts) > 1 else "0"  # Zweiter Teil ist der Wert, falls vorhanden
+                    try:
+                        config[key] = int(value)  # Versuche, den Wert in einen Integer zu konvertieren
+                    except ValueError:
+                        print(f"Warnung: Der Wert für '{key}' ({value}) ist ungültig. Die Datei {filename} ist möglicherweise korrupt.")
+                        config[key] = None  # None wird bei Bedarf später durch Defaults ersetzt
     except FileNotFoundError:
         print(f"Die Datei {filename} wurde nicht gefunden.")
     return config
 
+
 def level_initialisieren():
     with open("Level.txt", 'r') as datei:
-        return [list(map(int, line.strip().split())) for line in datei]
+        # Nur Zeilen verarbeiten, die nicht mit # beginnen und nicht leer sind
+        matrix = [
+            list(map(int, line.strip().split()))
+            for line in datei if line.strip() and not line.strip().startswith("#")
+        ]
+    # Randwerte auf 1 setzen: Ränder sind immer Wände, sollte der User versuchen eigene Maps hochzuladen
+    for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            if i == 0 or i == len(matrix) - 1 or j == 0 or j == len(matrix[i]) - 1:
+                matrix[i][j] = 1
+    return matrix
 
 def mauern_initialisieren(level, kacheln):
     mauern = []
@@ -312,6 +329,25 @@ def initialisiere_entitaet(wert_kachel, level, kacheln):
                 rect_y = y * kacheln
                 rect = RectType(rect_x, rect_y, kacheln, kacheln)
                 return rect
+
+# Prüfe, ob ein sinnvoller Wert aus der Konfiguration für die Kachelgröße eingelesen wurde, sonst setze ihn auf 16
+def pruefe_kacheln(kacheln):
+    if not kacheln:
+        kacheln = 16
+    elif not 0 < kacheln <= 32:
+        kacheln = 16
+    return kacheln
+
+# Prüfe, ob die Geschwindigkeiten aus der Konfiguration Teiler von Kacheln sind, sonst setzte sie gleich 1 (Default Wert)
+def pruefe_geschwindigkeit(geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist, kacheln):
+    geschwingigkeiten = [geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist]
+    for i in range(len(geschwingigkeiten)):
+        if geschwingigkeiten[i] == None:            # Falls der Eintrag nicht in der Konfig existiert
+            geschwingigkeiten[i] = 1                # Setze auf Default Wert, damit Spiel starten kann
+        if geschwingigkeiten[i] != 0:               # Geschwindigkeit von 0 soll erlaubt sein, nützlich zum Testen des Programms
+            if kacheln % geschwingigkeiten[i] != 0: # Geschwindigkeit ist Teiler von Kacheln
+                geschwingigkeiten[i] = 1            # Setze auf Default Wert, damit Spiel starten kann
+    return geschwingigkeiten
 
 # Wenn der Wegweiser Werte ausgibt, dann bedeutet das, dass die Entität, welche die Funktion aufruft, genau passend auf einer Kachel sitzt.
 def wegweiser(rect, kacheln, level):
@@ -427,6 +463,7 @@ if __name__ == "__main__":
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
     level = level_initialisieren()
     kacheln = konfiguration.get("kacheln",)
+    kacheln = pruefe_kacheln(kacheln) # Prüfe, ob ein sinnvoller Wert eingelesen wurde, sonst setze auf 16 (Default)
     fenster_x = len(level[0]) * kacheln
     fenster_y = len(level) * kacheln
     fenster = pygame.display.set_mode((fenster_x,fenster_y))
@@ -460,6 +497,9 @@ if __name__ == "__main__":
     gruener_geist = initialisiere_entitaet(9, level, kacheln)
     geschwindigkeit_gruener_geist = konfiguration.get("geschwindigkeit_gruener_geist")
     richtung_gruener_geist = None
+
+    # Prüfe, ob die Geschwindigkeiten aus der Konfiguration Teiler von Kacheln sind, sonst setzte sie gleich 1 (Default Wert). Dies verhindert Glitching in die Wände.
+    geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist = pruefe_geschwindigkeit(geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist, kacheln)
 
     # Event-Schleife
     spiel = True

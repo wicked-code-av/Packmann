@@ -1,15 +1,16 @@
 # Konfiguration für das Spiel
-# Es gilt: Variablenname Leerzeichen Wert # Kommentar
-# Leere Zeilen werden ignoriert
 
-# Größe der Kacheln aus denen sich das Spielfeld zusammensetzt in Pixeln
-kacheln 16
+# Größe der Kacheln, aus denen sich das Spielfeld zusammensetzt, in Pixeln
+kacheln 16 px (Default 16 px)
 
-# Geschwindigkeit der Spieler*in
-geschwindigkeit_packmann 1          # Default: 1
+# Geschwindigkeit Packmann
+geschwindigkeit_packmann A (Default: 1)
 
-# Geschwindigkeit der Gegner
-geschwindigkeit_roter_geist 1       # Default: 1
-geschwindigkeit_rosa_geist 1        # Default: 1
-geschwindigkeit_gruener_geist 1     # Default: 1
-geschwindigkeit_weisser_geist 1     # Default: 1
+# Geschwindigkeit Geister
+geschwindigkeit_weisser_geist 1 (Default: 1)
+geschwindigkeit_roter_geist 1 (Default: 1)
+geschwindigkeit_rosa_geist 1 (Default: 1)
+geschwindigkeit_gruener_geist 1 (Default: 1)
+
+# Für die Geschwindigkeiten gilt: Sie müssen ein Teiler von kacheln sein, sonst kommt es zu glitching.
+# Das Spiel überschreibt ungültige Werte mit Defaults.
