@@ -48,27 +48,28 @@ def hauptmenue():
                         elif i == 2:                                                # Spiel beenden
                             spiel_beenden()
 
+def load_highscores():
+    # Lädt die Highscores aus der Datei und behandelt korrupte Daten
+    try:
+        with open("highscores.txt", "r") as file:
+            lines = [line.strip() for line in file.readlines()]
+            # Erzeuge eine Liste von Tupeln, bestehend aus einem String und einem Integer
+            highscores = [tuple(line.rsplit(" ", 1)) for line in lines if " " in line]
+            # Überprüfen, ob alle Scores numerisch sind
+            for _, score in highscores:
+                int(score)  # Test auf numerischen Score
+            return highscores
+    except (FileNotFoundError, ValueError, IndexError):
+        return None  # Korrupte oder fehlende Datei
+
+def clear_highscores():
+    # Löscht alle Highscores
+    with open("highscores.txt", "w") as file:
+        file.write("")  # Datei leeren
+
+
 def show_highscores(screen, screen_width, screen_height):
     # Zeigt die Highscores an und ermöglicht Rückkehr oder Löschen per Mausklick
-
-    def load_highscores():
-        # Lädt die Highscores aus der Datei und behandelt korrupte Daten
-        try:
-            with open("highscores.txt", "r") as file:
-                lines = [line.strip() for line in file.readlines()]
-                # Erzeuge eine Liste von Tupeln, bestehend aus einem String und einem Integer
-                highscores = [tuple(line.rsplit(" ", 1)) for line in lines if " " in line]
-                # Überprüfen, ob alle Scores numerisch sind
-                for _, score in highscores:
-                    int(score)  # Test auf numerischen Score
-                return highscores
-        except (FileNotFoundError, ValueError, IndexError):
-            return None  # Korrupte oder fehlende Datei
-
-    def clear_highscores():
-        # Löscht alle Highscores
-        with open("highscores.txt", "w") as file:
-            file.write("")  # Datei leeren
 
     highscores = load_highscores()
 
