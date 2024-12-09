@@ -605,11 +605,14 @@ def main():
         if os.path.isfile(os.path.join(os.path.abspath("Levels"), f)) and f.lower().endswith(".txt")
     ]
     if not levels:
-        print(f"Keine Levels gefunden. Bitte Integrität der Textdateien im Verzeichnis '{os.path.abspath("Levels")}' prüfen.")
+        print(f"Keine Levels gefunden. Bitte Integrität der Textdateien im Verzeichnis {os.path.abspath("Levels")} prüfen.")
 
     # starte das Spiel, durchlaufe alle Levels
     for level_name in levels:
-        score = spiel(levels, level_name, score, konfiguration)
+        try:
+            score = spiel(levels, level_name, score, konfiguration)
+        except(FileNotFoundError, ValueError, IndexError):
+            print(f"Die Datei {level_name} im Verzeichnis {os.path.abspath("Levels")} ist möglicherweise korrupt. Überspringe das Level {level_name}." )
 
     # beende pygame
     pygame.quit()
