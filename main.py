@@ -1,4 +1,4 @@
-import pygame, random, sys
+import pygame, random, sys, os
 from pygame.rect import RectType
 
 def hauptmenue():
@@ -119,8 +119,7 @@ def show_highscores(screen, screen_width, screen_height):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                spiel_beenden()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Linksklick
                     if buttons[0]["rect"].collidepoint(event.pos):  # Zurück
@@ -163,27 +162,66 @@ def save_highscore(name, score):
         file.write("\n".join(highscores))
 
 # Diese Funktion beendet das Spiel bei Sieg oder Niederlage, vorher kann ein Highscore gespeichert werden
-def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist):
+def game_over(levels, level_name, score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist):
 
     # Initialisiere Liste mit Geistern
     geister = [roter_geist, weisser_geist, rosa_geist, gruener_geist]
 
-    # Prüfe Kollision mit Geistern, -1 steht für Kollision mit beliebigem Geist auf der Liste
+    # Kollision mit beliebigem Geist
     if pygame.Rect.collidelist(packmann, geister) != -1:
-        niederlage = True
         sieg = False
 
-    # prüfe, ob alle Münzen eingesammelt worden sind
+    # keine Münzen mehr auf dem Spielfeld
     elif not muenzen:
-        sieg = True
-        niederlage = False
+        # Letztes Level durchgespielt
+        if level_name == levels[-1]:
+            sieg = True
+        else:
+            next_level_screen()
+            return False # Spiel soll enden, es geht im Hauptprogramm weiter
 
     # kein GameOver: Keine Kollision, es gibt noch Münzen auf dem Spielfeld.
     else:
-        return geister
+        return True # Spiel geht weiter
 
-    # sieg oder niederlage
-    if sieg or niederlage:
+    game_over_screen(sieg, score)
+
+def next_level_screen():
+    # Fenstergröße festlegen
+    screen_width, screen_height = 400, 300
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("Nächstes Level")
+
+    # Schriftart
+    font = pygame.font.Font(None, 36)
+
+    # Button erstellen
+    button_rect = pygame.Rect(screen_width // 2 - 125, screen_height // 2 - 25, 250, 50)
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Linksklick
+                    if button_rect.collidepoint(event.pos):
+                        running = False
+
+        # Hintergrund füllen
+        screen.fill(farbpalette("schwarz"))
+
+        # Button anzeigen
+        pygame.draw.rect(screen, farbpalette("hellgruen"), button_rect)
+        button_text = schriftarten("mittel").render("Nächstes Level", True, farbpalette("weiss"))
+        button_text_rect = button_text.get_rect(center=button_rect.center)
+        screen.blit(button_text, button_text_rect)
+
+        # Fenster aktualisieren
+        pygame.display.flip()
+
+def game_over_screen(sieg, score):
 
         # Fenstergröße festlegen
         screen_width, screen_height = 400, 300
@@ -193,7 +231,7 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
         # Nachricht basierend auf Sieg/Niederlage
         if sieg:
             message_text = schriftarten("gross").render("Sieg!", True, farbpalette("hellgruen"))
-        if niederlage:
+        else:
             message_text = schriftarten("gross").render("Game Over", True, farbpalette("rot"))
         message_rect = message_text.get_rect(center=(screen_width // 2, 50))
 
@@ -210,8 +248,8 @@ def game_over(score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, 
             input_prompt_rect = input_prompt.get_rect(center=(screen_width // 2, 150))
 
         # Hauptanzeigeschleife
-        game_over_screen = True
-        while game_over_screen:
+        game_over_display = True
+        while game_over_display:
             screen.fill(farbpalette("schwarz"))
             screen.blit(message_text, message_rect)
             screen.blit(score_text, score_rect)
@@ -253,6 +291,7 @@ def farbpalette(farbe):
 
 def schriftarten(schrift):
     schriften = {
+        "sehr_klein": pygame.font.Font(None, 20),
         "klein" : pygame.font.Font(None,30),
         "mittel" : pygame.font.Font(None,40),
         "gross" : pygame.font.Font(None,60),
@@ -279,19 +318,23 @@ def lade_konfiguration(filename="Konfiguration.txt"):
         print(f"Die Datei {filename} wurde nicht gefunden.")
     return config
 
+def level_initialisieren(level_name):
+    # Pfad zur Datei erstellen
+    level_pfad = os.path.join("Levels", f"{level_name}")
 
-def level_initialisieren():
-    with open("Level.txt", 'r') as datei:
-        # Nur Zeilen verarbeiten, die nicht mit # beginnen und nicht leer sind
+    # Datei öffnen und Matrix einlesen
+    with open(level_pfad, 'r') as datei:
         matrix = [
             list(map(int, line.strip().split()))
             for line in datei if line.strip() and not line.strip().startswith("#")
         ]
-    # Randwerte auf 1 setzen: Ränder sind immer Wände, sollte der User versuchen eigene Maps hochzuladen
+
+    # Randwerte auf 1 setzen: Ränder sind immer Wände
     for i in range(len(matrix)):
         for j in range(len(matrix[i])):
             if i == 0 or i == len(matrix) - 1 or j == 0 or j == len(matrix[i]) - 1:
                 matrix[i][j] = 1
+
     return matrix
 
 def mauern_initialisieren(level, kacheln):
@@ -303,7 +346,7 @@ def mauern_initialisieren(level, kacheln):
                 mauern.append(mauerabschnitt)
     return mauern
 
-def mauern_zeichnen(mauern):
+def mauern_zeichnen(mauern, fenster):
     for mauerabschnitt in mauern:
         pygame.draw.rect(fenster,farbpalette("blau"),mauerabschnitt)
 
@@ -316,7 +359,7 @@ def muenzen_initialisieren(level, kacheln):
                 muenzen.append(muenze)
     return muenzen
 
-def muenzen_zeichnen(muenzen):
+def muenzen_zeichnen(muenzen, fenster):
     for muenze in muenzen:
         pygame.draw.rect(fenster,farbpalette("gelb"),muenze)
 
@@ -346,7 +389,7 @@ def pruefe_geschwindigkeit(geschwindigkeit_packmann, geschwindigkeit_weisser_gei
             geschwingigkeiten[i] = 1                # Setze auf Default Wert, damit Spiel starten kann
         if geschwingigkeiten[i] != 0:               # Geschwindigkeit von 0 soll erlaubt sein, nützlich zum Testen des Programms
             if kacheln % geschwingigkeiten[i] != 0: # Geschwindigkeit ist Teiler von Kacheln
-                geschwingigkeiten[i] = 1            # Setze auf Default Wert, damit Spiel starten kann
+                geschwingigkeiten[i] = 1            # Setze auf Default Wert, um Glitching in Wände zu verhindern
     return geschwingigkeiten
 
 # Wenn der Wegweiser Werte ausgibt, dann bedeutet das, dass die Entität, welche die Funktion aufruft, genau passend auf einer Kachel sitzt.
@@ -378,7 +421,7 @@ def wegweiser(rect, kacheln, level):
 
 def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
     # bestimme die Koordinaten des Rect-Objekts
-    x_rect, y_rect, _, _ = rect
+    x_rect, y_rect, kacheln, _ = rect
     # bewege das Rect-Objekts
     if richtung_rect == "oben":
         y_rect = y_rect - 1 * geschwindigkeit_rect
@@ -393,7 +436,7 @@ def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
     # gib das angepasste Rect-Objekt zurück
     return rect
 
-def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level):
+def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level, fenster):
     # checke mögliche Richtungen, weise diese dem Geist zu
     erlaubte_richtungen = wegweiser(aktueller_geist, kacheln, level)
     if erlaubte_richtungen:
@@ -411,7 +454,7 @@ def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist,
     # gib die relevanten Informationen zurück an das Hauptprogramm
     return aktueller_geist, richtung_aktueller_geist
 
-def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level):
+def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level, fenster):
     # gab es ein Update der erlaubten Richtungen für packmann? (er steht auf einer Wegkreuzung)
     erlaubte_richtungen = wegweiser(packmann, kacheln, level)
 
@@ -444,25 +487,30 @@ def muenzen_fressen(packmann, muenzen, score):
         score = score + 1
     return muenzen, score
 
+def score_und_level_anzeigen(fenster, fenster_x, score, level_name):
+    # Text rendern
+    score_text = schriftarten("sehr_klein").render(f"Score: {score}", True, farbpalette("weiss"))  # Weißer Text
+
+    # Text auf den Bildschirm zeichnen (10px vom oberen und linken Rand)
+    fenster.blit(score_text, (10, 10))
+
+    # Levelname auf den Bildschirm zeichnen (10px vom oberen und rechten Rand)
+    level_text = schriftarten("sehr_klein").render(f"{level_name}".rstrip(".txt"), True, farbpalette("weiss"))  # Weißer Text
+    level_text_rect = level_text.get_rect()
+    level_text_rect.topright = (fenster_x - 10, 10)
+    fenster.blit(level_text, level_text_rect)
+
 def spiel_beenden():
     pygame.quit()
     sys.exit()
 
-if __name__ == "__main__":
-    # starte pygame
-    pygame.init()
-
-    # starte das Hauptmenü
-    hauptmenue()
-
+def spiel(levels, level_name, score, konfiguration):
     # hier beginnt das Spiel: Es werden alle notwendigen Komponenten für die Eventschleife initialisiert
     fps = pygame.time.Clock()               # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
-    score = 0                               # initialisiere den Score
-    konfiguration = lade_konfiguration()    # Lade die Konfiguration
 
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
-    level = level_initialisieren()
-    kacheln = konfiguration.get("kacheln",)
+    level = level_initialisieren(level_name)
+    kacheln = konfiguration.get("kacheln")
     kacheln = pruefe_kacheln(kacheln) # Prüfe, ob ein sinnvoller Wert eingelesen wurde, sonst setze auf 16 (Default)
     fenster_x = len(level[0]) * kacheln
     fenster_y = len(level) * kacheln
@@ -471,7 +519,7 @@ if __name__ == "__main__":
 
     # Erzeuge Listen von Mauerabschnitten und Münzen
     mauern = mauern_initialisieren(level, kacheln)
-    muenzen = muenzen_initialisieren(level, kacheln)
+    muenzen = muenzen_initialisieren(level, kacheln,)
 
     # Initialisiere packmann (Wert 5 in Level.txt) für die Event-Schleife
     packmann = initialisiere_entitaet(5, level, kacheln)
@@ -508,29 +556,61 @@ if __name__ == "__main__":
         fps.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                spiel = False
+                spiel_beenden()
 
         # zeichne den Hintergrund
         fenster.fill(farbpalette("schwarz"))
 
         # zeichne die Mauern
-        mauern_zeichnen(mauern)
+        mauern_zeichnen(mauern, fenster)
 
         # zeichne die Münzen auf der Liste
-        muenzen_zeichnen(muenzen)
+        muenzen_zeichnen(muenzen, fenster)
 
         # bewege und zeichne Packmann + Geister
-        packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level)
-        weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level)
-        roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level)
-        rosa_geist, richtung_rosa_geist = geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, "rosa", kacheln, level)
-        gruener_geist, richtung_gruener_geist = geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, "limette", kacheln, level)
+        packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level, fenster)
+        weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level, fenster)
+        roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level, fenster)
+        rosa_geist, richtung_rosa_geist = geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, "rosa", kacheln, level, fenster)
+        gruener_geist, richtung_gruener_geist = geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, "limette", kacheln, level, fenster)
 
         # friss Münzen
         muenzen, score = muenzen_fressen(packmann, muenzen, score)
 
-        # Aktualisiere die Liste der Geister und prüfe, ob das Spiel endet. Falls ja, starte den Game Over Screen
-        geister = game_over(score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
+        # Prüfe, ob das Spiel endet. Falls ja, starte den Game Over Screen
+        spiel = game_over(levels, level_name, score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
+
+        score_und_level_anzeigen(fenster, fenster_x, score, level_name)
 
         # Aktualisiere Bildschirm
         pygame.display.update()
+
+    return score
+
+# Hauptfunktion
+def main():
+    # starte pygame
+    pygame.init()
+
+    # Lade die Konfiguration
+    konfiguration = lade_konfiguration()
+
+    # initialisiere den Score
+    score = 0
+
+    # starte das Hauptmenü
+    hauptmenue()
+
+    # suche im Ordner Levels nach Level Dateien
+    levels = [f for f in os.listdir("Levels") if os.path.isfile(os.path.join("Levels", f))]
+
+    # starte das Spiel, durchlaufe alle Levels
+    for level_name in levels:
+        score = spiel(levels, level_name, score, konfiguration)
+
+    # beende pygame
+    pygame.quit()
+
+# Hauptprogramm
+if __name__ == "__main__":
+    main()
