@@ -609,10 +609,7 @@ def main():
 
     # starte das Spiel, durchlaufe alle Levels
     for level_name in levels:
-        try:
-            score = spiel(levels, level_name, score, konfiguration)
-        except ValueError or IndexError or TypeError or FileNotFoundError:
-            print(f"Die Datei {level_name} im Verzeichnis {os.path.abspath("Levels")} ist möglicherweise korrupt. Level {level_name} wird übersprungen.")
+        score = spiel(levels, level_name, score, konfiguration)
 
     # beende pygame
     pygame.quit()
