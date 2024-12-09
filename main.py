@@ -193,9 +193,6 @@ def next_level_screen():
     screen = pygame.display.set_mode((screen_width, screen_height))
     pygame.display.set_caption("Nächstes Level")
 
-    # Schriftart
-    font = pygame.font.Font(None, 36)
-
     # Button erstellen
     button_rect = pygame.Rect(screen_width // 2 - 125, screen_height // 2 - 25, 250, 50)
 
