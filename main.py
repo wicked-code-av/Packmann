@@ -1,5 +1,220 @@
 import pygame, random, sys, os
-from pygame.rect import RectType
+
+# Klasse für Entitäten: Packmann und die Geister sind Subklassen und erben Methoden und Attribute
+class Entitaet:
+    def __init__(self, x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe):
+        self.x_koordinate = x_koordinate
+        self.y_koordinate = y_koordinate
+        self.hoehe = hoehe
+        self.breite = breite
+        self.geschwindigkeit = geschwindigkeit
+        self.richtung = richtung
+        self.farbe = farbe
+
+    def entitaet_bewegen(self):
+        if self.richtung == "oben":
+            self.y_koordinate -= self.geschwindigkeit
+        elif self.richtung == "unten":
+            self.y_koordinate += self.geschwindigkeit
+        elif self.richtung == "links":
+            self.x_koordinate -= self.geschwindigkeit
+        elif self.richtung == "rechts":
+            self.x_koordinate += self.geschwindigkeit
+
+    # Wenn der Wegweiser Werte ausgibt, dann bedeutet das, dass die Entität, welche die Funktion aufruft, genau passend auf einer Kachel sitzt.
+    def wegweiser(self, kacheln, level):
+        if self.x_koordinate % kacheln == 0 and self.y_koordinate % kacheln == 0:
+            erlaubte_richtungen = []
+            aktuelle_kachel_x = int(self.x_koordinate / kacheln)
+            aktuelle_kachel_y = int(self.y_koordinate / kacheln)
+
+            oberer_nachbar = level[aktuelle_kachel_y - 1][aktuelle_kachel_x]
+            unterer_nachbar = level[aktuelle_kachel_y + 1][aktuelle_kachel_x]
+            linker_nachbar = level[aktuelle_kachel_y][aktuelle_kachel_x - 1]
+            rechter_nachbar = level[aktuelle_kachel_y][aktuelle_kachel_x + 1]
+
+            if oberer_nachbar != 1:
+                erlaubte_richtungen.append("oben")
+            if unterer_nachbar != 1:
+                erlaubte_richtungen.append("unten")
+            if linker_nachbar != 1:
+                erlaubte_richtungen.append("links")
+            if rechter_nachbar != 1:
+                erlaubte_richtungen.append("rechts")
+
+            return erlaubte_richtungen
+        else:
+            return None
+
+class Packmann(Entitaet):
+    def __init__(self, x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe):
+        super().__init__(x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe)
+
+    def richtung_aendern(self, erlaubte_richtungen):
+        if erlaubte_richtungen:
+            tasten = pygame.key.get_pressed()
+            if tasten[pygame.K_RIGHT] and "rechts" in erlaubte_richtungen:
+                self.richtung = "rechts"
+            elif tasten[pygame.K_LEFT] and "links" in erlaubte_richtungen:
+                self.richtung = "links"
+            elif tasten[pygame.K_UP] and "oben" in erlaubte_richtungen:
+                self.richtung = "oben"
+            elif tasten[pygame.K_DOWN] and "unten" in erlaubte_richtungen:
+                self.richtung = "unten"
+            else:
+                self.richtung = None
+
+    def packmann_zeichnen(self, fenster, kacheln):
+        centerx = self.x_koordinate + self.breite // 2
+        centery = self.y_koordinate + self.hoehe // 2
+        pygame.draw.circle(fenster, farbpalette(self.farbe), (centerx, centery), kacheln // 2)
+
+    def update(self, fenster, kacheln, level):
+        erlaubte_richtungen = self.wegweiser(kacheln, level)
+        if erlaubte_richtungen:
+            self.richtung_aendern(erlaubte_richtungen)
+        self.entitaet_bewegen()
+        self.packmann_zeichnen(fenster, kacheln)
+
+    def muenzen_fressen(self, muenzen, score):
+        # Erstelle ein Pygame Rect basierend auf den Packmann-Koordinaten
+        packmann_rect = pygame.Rect(self.x_koordinate, self.y_koordinate, self.breite, self.hoehe)
+
+        # Prüfe Kollisionen
+        gefressene_muenze = packmann_rect.collidelist(muenzen)
+
+        # Wenn eine Kollision gefunden wurde
+        if gefressene_muenze != -1:
+            muenzen.pop(gefressene_muenze)  # Entferne die Münze
+            score += 1  # Erhöhe die Punktzahl
+
+        return muenzen, score
+
+class Geist(Entitaet):
+    def __init__(self, x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe):
+        super().__init__(x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe)
+
+    def richtung_aendern(self, erlaubte_richtungen):
+        if erlaubte_richtungen:
+            if len(erlaubte_richtungen) > 2:
+                self.richtung = random.choice(erlaubte_richtungen)
+            elif self.richtung not in erlaubte_richtungen:
+                self.richtung = random.choice(erlaubte_richtungen)
+
+    def geist_zeichnen(self, fenster):
+        pygame.draw.rect(
+            fenster,
+            self.farbe,  # Direktes RGB-Tupel
+            (self.x_koordinate, self.y_koordinate, self.breite, self.hoehe)
+        )
+
+    def update(self, fenster, kacheln, level):
+        erlaubte_richtungen = self.wegweiser(kacheln, level)
+        if erlaubte_richtungen:
+            self.richtung_aendern(erlaubte_richtungen)
+        self.entitaet_bewegen()
+        self.geist_zeichnen(fenster)
+
+
+def initialisiere_packmann(level, kacheln, konfiguration):
+    """
+    Initialisiert einen Packmann basierend auf der Position des Werts 5 in der Level-Matrix.
+    :param level: 2D-Array, das das Level beschreibt
+    :param kacheln: Größe einer Kachel (Pixel)
+    :return: Eine Instanz von Packmann
+    """
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == 5:  # Wert 5 bestimmt die Startposition von Packmann
+                x_koordinate = x * kacheln
+                y_koordinate = y * kacheln
+                return Packmann(
+                    x_koordinate=x_koordinate,
+                    y_koordinate=y_koordinate,
+                    hoehe=kacheln,
+                    breite=kacheln,
+                    geschwindigkeit= konfiguration.get("geschwindigkeit_packmann"),
+                    richtung="rechts",
+                    farbe="gelb"
+                )
+    raise ValueError("Packmann konnte nicht initialisiert werden. Wert 5 fehlt im Level.")
+
+def zufaellige_farbe():
+    """
+    Generiert eine zufällige RGB-Farbe, bei der jeder Wert zwischen 50 und 255 liegt.
+    """
+    return (
+        random.randint(50, 255),  # Rotanteil
+        random.randint(50, 255),  # Grünanteil
+        random.randint(50, 255)   # Blauanteil
+    )
+
+
+def initialisiere_geister(level, kacheln, konfiguration):
+    """
+    Initialisiert Geister basierend auf der Position des Werts 9 in der Level-Matrix.
+    :return: Liste von Geist-Instanzen
+    """
+    geister = []
+
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == 9:  # Wert 9 bestimmt die Startposition eines Geistes
+                x_koordinate = x * kacheln
+                y_koordinate = y * kacheln
+
+                # Generiere eine zufällige Farbe
+                farbe = zufaellige_farbe()
+
+                # Geist erstellen und zur Liste hinzufügen
+                geister.append(
+                    Geist(
+                        x_koordinate=x_koordinate,
+                        y_koordinate=y_koordinate,
+                        hoehe=kacheln,
+                        breite=kacheln,
+                        geschwindigkeit=konfiguration.get("geschwindigkeit_geister"),
+                        richtung=random.choice(["oben", "unten", "links", "rechts"]),  # Zufällige Richtung
+                        farbe=farbe  # Zufällige Farbe als Tupel
+                    )
+                )
+
+    if not geister:
+        raise ValueError("Keine Geister konnten initialisiert werden. Wert 9 fehlt im Level.")
+
+    return geister
+
+
+def game_over(levels, level_name, score, packmann, muenzen, geister):
+    """
+    Prüft, ob das Spiel vorbei ist:
+    - Packmann kollidiert mit einem Geist (Game Over).
+    - Alle Münzen gesammelt (Sieg oder nächstes Level).
+    """
+    # Erstelle ein Rect für den Packmann basierend auf seinen Koordinaten
+    packmann_rect = pygame.Rect(packmann.x_koordinate, packmann.y_koordinate, packmann.breite, packmann.hoehe)
+
+    # Prüfe Kollision mit einem beliebigen Geist
+    for geist in geister:
+        geist_rect = pygame.Rect(geist.x_koordinate, geist.y_koordinate, geist.breite, geist.hoehe)
+        if packmann_rect.colliderect(geist_rect):
+            sieg = False
+            game_over_screen(sieg, score)
+            return False  # Spiel endet bei Kollision
+
+    # Keine Münzen mehr auf dem Spielfeld
+    if not muenzen:
+        # Letztes Level durchgespielt
+        if level_name == levels[-1]:
+            sieg = True
+            game_over_screen(sieg, score)
+            return False  # Spiel endet mit Sieg
+        else:
+            next_level_screen()
+            return False  # Wechsel zum nächsten Level
+
+    # Spiel geht weiter
+    return True
 
 def hauptmenue():
 
@@ -162,31 +377,6 @@ def save_highscore(name, score):
     with open("highscores.txt", "w") as file:
         file.write("\n".join(highscores))
 
-# Diese Funktion beendet das Spiel bei Sieg oder Niederlage, vorher kann ein Highscore gespeichert werden
-def game_over(levels, level_name, score, packmann, muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist):
-
-    # Initialisiere Liste mit Geistern
-    geister = [roter_geist, weisser_geist, rosa_geist, gruener_geist]
-
-    # Kollision mit beliebigem Geist
-    if pygame.Rect.collidelist(packmann, geister) != -1:
-        sieg = False
-
-    # keine Münzen mehr auf dem Spielfeld
-    elif not muenzen:
-        # Letztes Level durchgespielt
-        if level_name == levels[-1]:
-            sieg = True
-        else:
-            next_level_screen()
-            return False # Spiel soll enden, es geht im Hauptprogramm weiter
-
-    # kein GameOver: Keine Kollision, es gibt noch Münzen auf dem Spielfeld.
-    else:
-        return True # Spiel geht weiter
-
-    game_over_screen(sieg, score)
-
 def next_level_screen():
     # Fenstergröße festlegen
     screen_width, screen_height = 400, 300
@@ -279,12 +469,9 @@ def farbpalette(farbe):
     farben = {
     "schwarz": (0, 0, 0),
     "blau": (0, 30, 180),
-    "violett": (148, 0, 211),
     "gelb": (255, 255, 0),
     "weiss": (255, 255, 255),
-    "rosa": (255, 192, 203),
     "rot": (255, 0, 0),
-    "limette": (173, 255, 47),
     "hellgruen": (0, 200, 0),
     }
     return farben.get(farbe)
@@ -363,129 +550,34 @@ def muenzen_zeichnen(muenzen, fenster):
     for muenze in muenzen:
         pygame.draw.rect(fenster,farbpalette("gelb"),muenze)
 
-# Erzeuge eine Entität (verwendet für Geister, Packmann), als Rect-Type, auf einer Kachel mit einem bestimmten wert
-def initialisiere_entitaet(wert_kachel, level, kacheln):
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == wert_kachel:
-                rect_x = x * kacheln
-                rect_y = y * kacheln
-                rect = RectType(rect_x, rect_y, kacheln, kacheln)
-                return rect
+def pruefe_konfiguration(konfiguration):
+    """
+    Prüft die Konfiguration für Geschwindigkeiten und Kachelgröße.
+    Validiert ungültige Werte und setzt Defaults, falls notwendig.
 
-# Prüfe, ob ein sinnvoller Wert aus der Konfiguration für die Kachelgröße eingelesen wurde, sonst setze ihn auf 16
-def pruefe_kacheln(kacheln):
-    if not kacheln:
-        kacheln = 16
-    elif not 0 < kacheln <= 32:
-        kacheln = 16
-    return kacheln
+    :param konfiguration: Dictionary mit Konfigurationswerten
+    :return: Aktualisierte Konfiguration mit validierten Werten
+    """
+    # Prüfe Kachelgröße
+    kacheln = konfiguration.get("kacheln")
+    if not kacheln or not (0 < kacheln <= 32):
+        konfiguration["kacheln"] = 16  # Standardwert für Kachelgröße
 
-# Prüfe, ob die Geschwindigkeiten aus der Konfiguration Teiler von Kacheln sind, sonst setzte sie gleich 1 (Default Wert)
-def pruefe_geschwindigkeit(geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist, kacheln):
-    geschwingigkeiten = [geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist]
-    for i in range(len(geschwingigkeiten)):
-        if geschwingigkeiten[i] == None:            # Falls der Eintrag nicht in der Konfig existiert
-            geschwingigkeiten[i] = 1                # Setze auf Default Wert, damit Spiel starten kann
-        if geschwingigkeiten[i] != 0:               # Geschwindigkeit von 0 soll erlaubt sein, nützlich zum Testen des Programms
-            if kacheln % geschwingigkeiten[i] != 0: # Geschwindigkeit ist Teiler von Kacheln
-                geschwingigkeiten[i] = 1            # Setze auf Default Wert, um Glitching in Wände zu verhindern
-    return geschwingigkeiten
+    # Prüfe Packmann-Geschwindigkeit
+    if konfiguration.get("geschwindigkeit_packmann") is None:
+        konfiguration["geschwindigkeit_packmann"] = 1
+    elif konfiguration["geschwindigkeit_packmann"] != 0:
+        if konfiguration["kacheln"] % konfiguration["geschwindigkeit_packmann"] != 0:
+            konfiguration["geschwindigkeit_packmann"] = 1
 
-# Wenn der Wegweiser Werte ausgibt, dann bedeutet das, dass die Entität, welche die Funktion aufruft, genau passend auf einer Kachel sitzt.
-def wegweiser(rect, kacheln, level):
-    # Erzeuge die Koordinaten des Rect-Objekts
-    rect_x, rect_y,_,_ = rect
-    # Falls das Rect-Object genau passend auf einer Kachel sitzt:
-    if rect_x % kacheln == 0 and rect_y % kacheln == 0:
-        erlaubte_richtungen = []
-        # Erzeuge die Koordinaten der Kachel in der Matrix und rufe ihre Nachbarn ab
-        aktuelle_kachel_x = int (rect_x/kacheln)
-        aktuelle_kachel_y = int (rect_y/kacheln)
-        oberer_nachbar = level[aktuelle_kachel_y - 1][aktuelle_kachel_x]
-        unterer_nachbar = level[aktuelle_kachel_y + 1][aktuelle_kachel_x]
-        linker_nachbar = level[aktuelle_kachel_y][aktuelle_kachel_x - 1]
-        rechter_nachbar = level[aktuelle_kachel_y][aktuelle_kachel_x + 1]
-        # Erzeuge eine Liste erlaubter Richtungen
-        if oberer_nachbar != 1:
-            erlaubte_richtungen.append("oben")
-        if unterer_nachbar != 1:
-            erlaubte_richtungen.append("unten")
-        if linker_nachbar != 1:
-            erlaubte_richtungen.append("links")
-        if rechter_nachbar != 1:
-            erlaubte_richtungen.append("rechts")
-        return erlaubte_richtungen
-    else:
-        return None
+    # Prüfe Geister-Geschwindigkeit
+    if konfiguration.get("geschwindigkeit_geister") is None:
+        konfiguration["geschwindigkeit_geister"] = 1
+    elif konfiguration["geschwindigkeit_geister"] != 0:
+        if konfiguration["kacheln"] % konfiguration["geschwindigkeit_geister"] != 0:
+            konfiguration["geschwindigkeit_geister"] = 1
 
-def rect_bewegen(rect, geschwindigkeit_rect, richtung_rect):
-    # bestimme die Koordinaten des Rect-Objekts
-    x_rect, y_rect, kacheln, _ = rect
-    # bewege das Rect-Objekts
-    if richtung_rect == "oben":
-        y_rect = y_rect - 1 * geschwindigkeit_rect
-    elif richtung_rect == "unten":
-        y_rect = y_rect + 1 * geschwindigkeit_rect
-    elif richtung_rect == "links":
-        x_rect = x_rect - 1 * geschwindigkeit_rect
-    elif richtung_rect == "rechts":
-        x_rect = x_rect + 1 * geschwindigkeit_rect
-    # deklariere das Rect-Objekts neu anhand der angepassten Koordinaten
-    rect = RectType(x_rect, y_rect, kacheln, kacheln)
-    # gib das angepasste Rect-Objekt zurück
-    return rect
-
-def geist_bewegen_und_zeichnen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist, farbe, kacheln, level, fenster):
-    # checke mögliche Richtungen, weise diese dem Geist zu
-    erlaubte_richtungen = wegweiser(aktueller_geist, kacheln, level)
-    if erlaubte_richtungen:
-        # gibt es mehr als 2 mögliche Richtungen? Wegkreuzung, entscheide neu
-        if len(erlaubte_richtungen) > 2:
-            richtung_aktueller_geist = random.choice(erlaubte_richtungen)
-        # kann der Geist sich weiterbewegen? falls nein ändere die Richtung
-        if richtung_aktueller_geist not in erlaubte_richtungen:
-            richtung_aktueller_geist = random.choice(erlaubte_richtungen)
-
-    # bewege den Geist anhand von Geschwindigkeit und Richtung
-    aktueller_geist = rect_bewegen(aktueller_geist, geschwindigkeit_aktueller_geist, richtung_aktueller_geist)
-    # Zeichne den Geist
-    pygame.draw.rect(fenster, farbpalette(farbe), aktueller_geist)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return aktueller_geist, richtung_aktueller_geist
-
-def packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level, fenster):
-    # gab es ein Update der erlaubten Richtungen für packmann? (er steht auf einer Wegkreuzung)
-    erlaubte_richtungen = wegweiser(packmann, kacheln, level)
-
-    # Falls ja, ändere die Richtung abhängig vom User-Input
-    if erlaubte_richtungen:
-        tasten = pygame.key.get_pressed()
-        if tasten[pygame.K_RIGHT] and "rechts" in erlaubte_richtungen:
-            richtung_packmann = "rechts"
-        elif tasten[pygame.K_LEFT] and "links" in erlaubte_richtungen:
-            richtung_packmann = "links"
-        elif tasten[pygame.K_UP] and "oben" in erlaubte_richtungen:
-            richtung_packmann = "oben"
-        elif tasten[pygame.K_DOWN] and "unten" in erlaubte_richtungen:
-            richtung_packmann = "unten"
-        else:
-            richtung_packmann = None
-
-    # bewege den packmann anhand von Geschwindigkeit und Richtung
-    packmann = rect_bewegen(packmann, geschwindigkeit_packmann, richtung_packmann)
-    # zeichne den packmann als Kreis
-    pygame.draw.circle(fenster, farbpalette("gelb"), (packmann.centerx, packmann.centery), kacheln / 2)
-    # gib die relevanten Informationen zurück an das Hauptprogramm
-    return packmann, richtung_packmann
-
-def muenzen_fressen(packmann, muenzen, score):
-    gefressene_muenze = pygame.Rect.collidelist(packmann, muenzen)
-    # bei Kollision gibt collidelist als Argument den Indexeintrag des entsprechenden Elements
-    if gefressene_muenze != -1:
-        muenzen.pop(gefressene_muenze)
-        score = score + 1
-    return muenzen, score
+    return konfiguration
 
 def score_und_level_anzeigen(fenster, fenster_x, score, level_name):
     # Text rendern
@@ -511,7 +603,6 @@ def spiel(levels, level_name, score, konfiguration):
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
     level = level_initialisieren(level_name)
     kacheln = konfiguration.get("kacheln")
-    kacheln = pruefe_kacheln(kacheln) # Prüfe, ob ein sinnvoller Wert eingelesen wurde, sonst setze auf 16 (Default)
     fenster_x = len(level[0]) * kacheln
     fenster_y = len(level) * kacheln
     fenster = pygame.display.set_mode((fenster_x,fenster_y))
@@ -521,35 +612,11 @@ def spiel(levels, level_name, score, konfiguration):
     mauern = mauern_initialisieren(level, kacheln)
     muenzen = muenzen_initialisieren(level, kacheln,)
 
-    # Initialisiere packmann (Wert 5 in Level.txt) für die Event-Schleife
-    packmann = initialisiere_entitaet(5, level, kacheln)
-    geschwindigkeit_packmann = konfiguration.get("geschwindigkeit_packmann")
-    richtung_packmann = None
+    # Initialisiere packmann und die Geister als Objekte
+    packmann = initialisiere_packmann(level, kacheln, konfiguration)
+    geister = initialisiere_geister(level, kacheln, konfiguration)
 
-    # Initialisiere weißen Geist für die Event-Schleife (Wert 6 in Level.txt)
-    weisser_geist = initialisiere_entitaet(6, level, kacheln)
-    geschwindigkeit_weisser_geist = konfiguration.get("geschwindigkeit_weisser_geist")
-    richtung_weisser_geist = None
-
-    # Initialisiere roten Geist für die Event-Schleife (Wert 7 in Level.txt)
-    roter_geist = initialisiere_entitaet(7, level, kacheln)
-    geschwindigkeit_roter_geist = konfiguration.get("geschwindigkeit_roter_geist")
-    richtung_roter_geist = None
-
-    # Initialisiere rosa Geist für die Event-Schleife (Wert 8 in Level.txt)
-    rosa_geist = initialisiere_entitaet(8, level, kacheln)
-    geschwindigkeit_rosa_geist = konfiguration.get("geschwindigkeit_rosa_geist")
-    richtung_rosa_geist = None
-
-    # Initialisiere gruenen Geist für die Event-Schleife (Wert 9 in Level.txt)
-    gruener_geist = initialisiere_entitaet(9, level, kacheln)
-    geschwindigkeit_gruener_geist = konfiguration.get("geschwindigkeit_gruener_geist")
-    richtung_gruener_geist = None
-
-    # Prüfe, ob die Geschwindigkeiten aus der Konfiguration Teiler von Kacheln sind, sonst setzte sie gleich 1 (Default Wert). Dies verhindert Glitching in die Wände.
-    geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist = pruefe_geschwindigkeit(geschwindigkeit_packmann, geschwindigkeit_weisser_geist, geschwindigkeit_roter_geist, geschwindigkeit_rosa_geist, geschwindigkeit_gruener_geist, kacheln)
-
-    # Event-Schleife
+    # Event-Schleife für das Spiel
     spiel = True
     while spiel:
     # Tickspeed von 60 fps
@@ -568,17 +635,15 @@ def spiel(levels, level_name, score, konfiguration):
         muenzen_zeichnen(muenzen, fenster)
 
         # bewege und zeichne Packmann + Geister
-        packmann, richtung_packmann = packmann_bewegen_und_zeichnen(packmann, richtung_packmann, geschwindigkeit_packmann, kacheln, level, fenster)
-        weisser_geist, richtung_weisser_geist = geist_bewegen_und_zeichnen(weisser_geist, geschwindigkeit_weisser_geist, richtung_weisser_geist,"weiss", kacheln, level, fenster)
-        roter_geist, richtung_roter_geist = geist_bewegen_und_zeichnen(roter_geist, geschwindigkeit_roter_geist, richtung_roter_geist, "rot", kacheln, level, fenster)
-        rosa_geist, richtung_rosa_geist = geist_bewegen_und_zeichnen(rosa_geist, geschwindigkeit_rosa_geist, richtung_rosa_geist, "rosa", kacheln, level, fenster)
-        gruener_geist, richtung_gruener_geist = geist_bewegen_und_zeichnen(gruener_geist, geschwindigkeit_gruener_geist, richtung_gruener_geist, "limette", kacheln, level, fenster)
+        packmann.update(fenster, kacheln, level)
+        for geist in geister:
+            geist.update(fenster, kacheln, level)
 
         # friss Münzen
-        muenzen, score = muenzen_fressen(packmann, muenzen, score)
+        muenzen, score = packmann.muenzen_fressen(muenzen, score)
 
         # Prüfe, ob das Spiel endet. Falls ja, starte den Game Over Screen
-        spiel = game_over(levels, level_name, score, packmann,muenzen, roter_geist, weisser_geist, rosa_geist, gruener_geist)
+        spiel = game_over(levels,level_name, score, packmann, muenzen, geister)
 
         score_und_level_anzeigen(fenster, fenster_x, score, level_name)
 
@@ -592,8 +657,9 @@ def main():
     # starte pygame
     pygame.init()
 
-    # Lade die Konfiguration
+    # Lade die Konfiguration, prüfe auf existierende und sinnhafte Werte, sonst überschreibe sie mit Defaults
     konfiguration = lade_konfiguration()
+    konfiguration = pruefe_konfiguration(konfiguration)
 
     # initialisiere den Score
     score = 0
