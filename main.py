@@ -50,6 +50,7 @@ class Packmann(Entitaet):
     def __init__(self, x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe):
         super().__init__(x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe)
 
+    # Steuerung durch User
     def richtung_aendern(self, erlaubte_richtungen):
         if erlaubte_richtungen:
             tasten = pygame.key.get_pressed()
@@ -64,11 +65,13 @@ class Packmann(Entitaet):
             else:
                 self.richtung = None
 
+    # gelber Kreis
     def packmann_zeichnen(self, fenster, kacheln):
         centerx = self.x_koordinate + self.breite // 2
         centery = self.y_koordinate + self.hoehe // 2
         pygame.draw.circle(fenster, farbpalette(self.farbe), (centerx, centery), kacheln // 2)
 
+    # Führe die anderen Methoden in richtiger Reihenfolge aus
     def update(self, fenster, kacheln, level):
         erlaubte_richtungen = self.wegweiser(kacheln, level)
         if erlaubte_richtungen:
@@ -94,6 +97,7 @@ class Geist(Entitaet):
     def __init__(self, x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe):
         super().__init__(x_koordinate, y_koordinate, hoehe, breite, geschwindigkeit, richtung, farbe)
 
+    # Zufälliges Pathing
     def richtung_aendern(self, erlaubte_richtungen):
         if erlaubte_richtungen:
             if len(erlaubte_richtungen) > 2:
@@ -101,13 +105,14 @@ class Geist(Entitaet):
             elif self.richtung not in erlaubte_richtungen:
                 self.richtung = random.choice(erlaubte_richtungen)
 
+    # Zufällige Farben
     def geist_zeichnen(self, fenster):
         pygame.draw.rect(
             fenster,
             self.farbe,  # Direktes RGB-Tupel
             (self.x_koordinate, self.y_koordinate, self.breite, self.hoehe)
         )
-
+    # Führe die anderen Methoden in richtiger Reihenfolge aus
     def update(self, fenster, kacheln, level):
         erlaubte_richtungen = self.wegweiser(kacheln, level)
         if erlaubte_richtungen:
@@ -119,8 +124,6 @@ class Geist(Entitaet):
 def initialisiere_packmann(level, kacheln, konfiguration):
     """
     Initialisiert einen Packmann basierend auf der Position des Werts 5 in der Level-Matrix.
-    :param level: 2D-Array, das das Level beschreibt
-    :param kacheln: Größe einer Kachel (Pixel)
     :return: Eine Instanz von Packmann
     """
     for y in range(len(level)):
@@ -216,6 +219,7 @@ def game_over(levels, level_name, score, packmann, muenzen, geister):
     # Spiel geht weiter
     return True
 
+    # Zeige ein Menü an, mit anklickbaren Buttons
 def hauptmenue():
 
     # Fenstergröße
@@ -263,8 +267,8 @@ def hauptmenue():
                         elif i == 2:                                                # Spiel beenden
                             spiel_beenden()
 
-def load_highscores():
     # Lädt die Highscores aus der Datei und behandelt korrupte Daten
+def load_highscores():
     try:
         with open("highscores.txt", "r") as file:
             lines = [line.strip() for line in file.readlines()]
@@ -277,14 +281,13 @@ def load_highscores():
     except (FileNotFoundError, ValueError, IndexError):
         return None  # Korrupte oder fehlende Datei
 
-def clear_highscores():
     # Löscht alle Highscores
+def clear_highscores():
     with open("highscores.txt", "w") as file:
         file.write("")  # Datei leeren
 
-
-def show_highscores(screen, screen_width, screen_height):
     # Zeigt die Highscores an und ermöglicht Rückkehr oder Löschen per Mausklick
+def show_highscores(screen, screen_width, screen_height):
 
     highscores = load_highscores()
 
@@ -344,8 +347,8 @@ def show_highscores(screen, screen_width, screen_height):
                         clear_highscores()
                         highscores = load_highscores()
 
-def check_if_highscore(score):
     # Prüft, ob der gegebene Score ein Highscore ist, und ersetzt bei Bedarf eine kaputte Datei
+def check_if_highscore(score):
     try:
         with open("highscores.txt", "r") as file:
             highscores = [int(line.split()[1]) for line in file.readlines()]
@@ -358,6 +361,7 @@ def check_if_highscore(score):
     return len(highscores) < 6 or score > min(highscores)
     # True, wenn weniger als 6 Highscores gespeichert sind oder der Score größer ist als der kleinste Highscore
 
+    # Speichere Highscores
 def save_highscore(name, score):
     try:
         with open("highscores.txt", "r") as file:
@@ -377,6 +381,7 @@ def save_highscore(name, score):
     with open("highscores.txt", "w") as file:
         file.write("\n".join(highscores))
 
+    # Zwischenbildschirm zum Übergang ins nächste Level
 def next_level_screen():
     # Fenstergröße festlegen
     screen_width, screen_height = 400, 300
@@ -409,6 +414,7 @@ def next_level_screen():
         # Fenster aktualisieren
         pygame.display.flip()
 
+    # Game Over Bildschirm, Sieg oder Niederlage ändern das Verhalten
 def game_over_screen(sieg, score):
 
         # Fenstergröße festlegen
@@ -505,6 +511,7 @@ def lade_konfiguration(filename="Konfiguration.txt"):
         print(f"Die Datei {filename} wurde nicht gefunden.")
     return config
 
+    # Erstelle eine Matrix anhand einer Leveldatei
 def level_initialisieren(level_name):
     # Pfad zur Datei erstellen
     level_pfad = os.path.join("Levels", f"{level_name}")
@@ -524,6 +531,7 @@ def level_initialisieren(level_name):
 
     return matrix
 
+    # Liste von Mauern
 def mauern_initialisieren(level, kacheln):
     mauern = []
     for y in range(len(level)):
@@ -537,6 +545,7 @@ def mauern_zeichnen(mauern, fenster):
     for mauerabschnitt in mauern:
         pygame.draw.rect(fenster,farbpalette("blau"),mauerabschnitt)
 
+    # Liste von Münzen
 def muenzen_initialisieren(level, kacheln):
     muenzen = []
     for y in range(len(level)):
@@ -554,9 +563,7 @@ def pruefe_konfiguration(konfiguration):
     """
     Prüft die Konfiguration für Geschwindigkeiten und Kachelgröße.
     Validiert ungültige Werte und setzt Defaults, falls notwendig.
-
-    :param konfiguration: Dictionary mit Konfigurationswerten
-    :return: Aktualisierte Konfiguration mit validierten Werten
+    Die Geschwindigkeiten sollen immer ein Teiler der Kacheln sein, oder null.
     """
     # Prüfe Kachelgröße
     kacheln = konfiguration.get("kacheln")
@@ -596,9 +603,9 @@ def spiel_beenden():
     pygame.quit()
     sys.exit()
 
+    # Spiel initialisiert alle Variablen und Objekte die benötigt werden. Dann beginnt die Event-Schleife.
 def spiel(levels, level_name, score, konfiguration):
-    # hier beginnt das Spiel: Es werden alle notwendigen Komponenten für die Eventschleife initialisiert
-    fps = pygame.time.Clock()               # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
+    fps = pygame.time.Clock() # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
 
     # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "level", größe aus Variable "kacheln"
     level = level_initialisieren(level_name)
@@ -634,7 +641,7 @@ def spiel(levels, level_name, score, konfiguration):
         # zeichne die Münzen auf der Liste
         muenzen_zeichnen(muenzen, fenster)
 
-        # bewege und zeichne Packmann + Geister
+        # bewege und zeichne Packmann + Geister anhand ihrer respektiven .update() Methode
         packmann.update(fenster, kacheln, level)
         for geist in geister:
             geist.update(fenster, kacheln, level)
@@ -645,6 +652,7 @@ def spiel(levels, level_name, score, konfiguration):
         # Prüfe, ob das Spiel endet. Falls ja, starte den Game Over Screen
         spiel = game_over(levels,level_name, score, packmann, muenzen, geister)
 
+        # Rendere Score und Level-Name auf dem Bildschirm
         score_und_level_anzeigen(fenster, fenster_x, score, level_name)
 
         # Aktualisiere Bildschirm
