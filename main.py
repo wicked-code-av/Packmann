@@ -83,8 +83,7 @@ def show_highscores(screen, screen_width, screen_height):
     while highscore_screen:
         screen.fill(farbpalette("schwarz"))
 
-        if highscores is None:
-            # Korruptes File
+        if highscores is None: # Korruptes File
             warning_text = schriftarten("gross").render("Highscores korrupt!", True, farbpalette("rot"))
             warning_rect = warning_text.get_rect(center=(screen_width // 2, screen_height // 3))
             screen.blit(warning_text, warning_rect)
@@ -93,7 +92,8 @@ def show_highscores(screen, screen_width, screen_height):
             instruction_text = schriftarten("klein").render("Drücke 'Alle löschen' um Highscores zurückzusetzen", True, farbpalette("weiss"))
             instruction_rect = instruction_text.get_rect(center=(screen_width // 2, screen_height // 2))
             screen.blit(instruction_text, instruction_rect)
-        else:
+
+        else: # Highscore Datei intakt
             # Titel anzeigen
             title_text = schriftarten("gross").render("Highscores", True, farbpalette("weiss"))
             title_rect = title_text.get_rect(center=(screen_width // 2, 50))
@@ -266,6 +266,8 @@ def game_over_screen(sieg, score):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN and is_highscore:
                         # Name und Score speichern, Spiel beenden
+                        if name == "":
+                            name = "unknown_player"
                         save_highscore(name, score)
                         spiel_beenden()
                     elif event.key == pygame.K_BACKSPACE and is_highscore:
@@ -308,7 +310,7 @@ def lade_konfiguration(filename="Konfiguration.txt"):
                     key = parts[0]  # Erster Teil ist der Schlüssel
                     value = parts[1] if len(parts) > 1 else "0"  # Zweiter Teil ist der Wert, falls vorhanden
                     try:
-                        config[key] = int(value)  # Versuche, den Wert in einen Integer zu konvertieren
+                        config[key] = abs(int((value)))  # Versuche, den Wert in einen Integer zu konvertieren
                     except ValueError:
                         print(f"Warnung: Der Wert für '{key}' ({value}) ist ungültig. Die Datei {filename} ist möglicherweise korrupt.")
                         config[key] = None  # None wird bei Bedarf später durch Defaults ersetzt

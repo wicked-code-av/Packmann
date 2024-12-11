@@ -4,13 +4,13 @@
 kacheln 16 px (Default 16 px)
 
 # Geschwindigkeit Packmann
-geschwindigkeit_packmann 1 (Default: 1)
+geschwindigkeit_packmann 4 (Default: 1)
 
 # Geschwindigkeit Geister
-geschwindigkeit_weisser_geist 1 (Default: 1)
-geschwindigkeit_roter_geist 1 (Default: 1)
-geschwindigkeit_rosa_geist 1 (Default: 1)
-geschwindigkeit_gruener_geist 1 (Default: 1)
+geschwindigkeit_weisser_geist 0 (Default: 1)
+geschwindigkeit_roter_geist 0 (Default: 1)
+geschwindigkeit_rosa_geist 0 (Default: 1)
+geschwindigkeit_gruener_geist 0 (Default: 1)
 
 # Für die Geschwindigkeiten gilt: Sie müssen ein Teiler von kacheln sein, sonst kommt es zu glitching.
 # Das Spiel überschreibt ungültige Werte mit Defaults.
