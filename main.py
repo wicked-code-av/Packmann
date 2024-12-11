@@ -600,7 +600,7 @@ def spiel(levels, level_name, score, konfiguration):
     # hier beginnt das Spiel: Es werden alle notwendigen Komponenten für die Eventschleife initialisiert
     fps = pygame.time.Clock()               # erzeuge ein Clock Objekt, um in der Event-Schleife die frames per second einzustellen
 
-    # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "Level.txt", größe aus Variable "kacheln"
+    # Erzeuge ein Fenster aus Kacheln (Tiles), Anzahl der Kacheln aus Matrix "level", größe aus Variable "kacheln"
     level = level_initialisieren(level_name)
     kacheln = konfiguration.get("kacheln")
     fenster_x = len(level[0]) * kacheln
